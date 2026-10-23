@@ -1,13 +1,13 @@
 ---
 name: boss-desktop-api
-description: 用 REA 分析本机 BOSS直聘 Electron 安装包，复用登录态读取聊天、简历和执行已授权的单人文本回复。macOS 已做限定验证，Windows 11 x64 已验证部分只读能力；Windows 单人文本发送和历史回读已验证15个单人对象及其中1人的第二轮消息；PDF未验证。
+description: 用 REA 分析本机 BOSS直聘 Electron 安装包，复用登录态读取聊天、简历和执行已授权的单人文本回复。macOS 已做限定验证，Windows 11 x64 已验证部分只读能力；Windows 单人文本发送和历史回读已验证15个单人对象及其中6人的第二轮消息；PDF未验证。
 ---
 
 # BOSS 桌面端接口
 
 ## 平台范围
 
-**macOS（Apple Silicon / arm64）和 Windows 11 x64 已做限定范围验证。** Windows 已运行成功的项目为登录状态、两页联系人、指定单会话、已打开的在线简历摘要、加密成员明文导出；单人文本发送及唯一新增历史回读已实测15个对象，其中1人另有第二轮消息确认。部分逐条UI显示送达/已读；未建立数字状态映射。PDF、分页全量与在线全文未证明。参见 [逐项报告](references/windows-validation.md)。Linux 未验证。更换平台或版本需重新确认安装包格式、进程定位、调试入口和登录态。
+**macOS（Apple Silicon / arm64）和 Windows 11 x64 已做限定范围验证。** Windows 已运行成功的项目为登录状态、两页联系人、指定单会话、已打开的在线简历摘要、加密成员明文导出；单人文本发送及唯一新增历史回读已实测15个对象，其中6人另有第二轮消息确认。部分逐条UI显示送达/已读；未建立数字状态映射。PDF、分页全量与在线全文未证明。参见 [逐项报告](references/windows-validation.md)。Linux 未验证。更换平台或版本需重新确认安装包格式、进程定位、调试入口和登录态。
 
 从已安装包定位调用链，再在正在运行的客户端中使用正常 SDK、Socket.IO 桥接和 session。接口属于客户端上下文，不能把发现的路径当成已验证的外部 REST API。
 

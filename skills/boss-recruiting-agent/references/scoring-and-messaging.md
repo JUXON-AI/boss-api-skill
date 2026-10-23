@@ -97,13 +97,15 @@ Before an internal handoff:
 
 After a real Base/HR handoff exists:
 
-> 简历和沟通情况已整理给招聘团队复核，后续有进展会在 BOSS 上联系你。
+> 你的相关信息已转交给人事 HR 进一步处理，有消息会第一时间在 BOSS 上联系你。
 
 If an actual incoming resume email in the recruiting team's Feishu mailbox has been matched to this BOSS candidate and the current job, replace the closing sentence with:
 
-> 后续有进展会通过 BOSS 或你发送简历时使用的邮箱联系你。
+> 有消息会第一时间通过 BOSS 或你发送简历时使用的邮箱联系你。
 
 Use the sender address of that matched resume email. A resume contact address, online profile or BOSS attachment alone does not establish this email channel. Keep the mail-message reference, identity match and job match in private local evidence only. If no matching mail is confirmed, retain the BOSS-only wording. Read and send mail under the `lark-mail` skill; this wording does not authorize sending email or prove mailbox access. Do not guarantee an email or describe an internal handoff before it actually succeeds.
+
+Use the more explicit HR-handoff wording only after the actual handoff is verified, including a Base record readback when the workflow uses Base. “第一时间” refers to providing an update once there is news; it does not imply an interview, approval or a specific turnaround time. Do not send a second closing message merely to replace an earlier closing that has already been sent.
 
 ## Prohibited claims
 
