@@ -1,4 +1,4 @@
 interface:
-  display_name: "BOSS 桌面端接口（Mac）"
-  short_description: "Mac 上通过 REA 定位接口、读取聊天简历及授权单人回复；Windows 尚未验证"
+  display_name: "BOSS 桌面端接口"
+  short_description: "REA 定位接口；Mac 与 Windows 部分只读能力已验证，Windows PDF和实发未验证"
   default_prompt: "Use $boss-desktop-api to inspect the installed BOSS desktop package and access its authorized conversations and resumes through the existing logged-in runtime."

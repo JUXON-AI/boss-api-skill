@@ -1,15 +1,15 @@
-# BOSS API Skill（Mac）
+# BOSS API Skill（macOS / Windows）
 
 给 Codex / Agent 使用的 BOSS 直聘桌面端技术 skill。通过 REA 分析安装包，复用本机客户端正常登录态读取聊天和简历，并执行已授权的单人文本回复。
 
-**目前仅在 macOS（Mac，Apple Silicon / arm64）验证。Windows 尚未验证，当前脚本不声明兼容；Linux 也未验证。** macOS 验证仅覆盖下述具体能力，不代表所有功能均已实测通过。
+**macOS（Apple Silicon / arm64）和 Windows 11 x64 已做限定范围验证；Linux 未验证。** Windows 已实测登录状态、两页联系人、一个指定会话、已打开的在线简历结构化摘要，以及加密成员明文导出。PDF 与真实发送尚未在 Windows 验证，完整分页和在线简历全文也未证明。详见 [Windows 验证报告](references/windows-validation.md)。
 
 ## 平台与前提
 
 | 项目 | 状态 |
 |---|---|
 | macOS / Apple Silicon | 已做限定范围验证 |
-| Windows | 尚未验证，需要单独适配进程、路径和调试入口 |
+| Windows 11 x64 | 进程、调试、解包与部分只读能力已实测；逐项边界见报告 |
 | Linux | 尚未验证 |
 | BOSS 版本 | 本次核对 1.7.5，Electron 22.3.24 |
 | Node.js | REA 6.7.0 要求22系列≥22.19、24系列≥24.11，或26+；本机使用 Node 24 |
@@ -25,7 +25,7 @@
 - **附件简历**：下载已接收、位于当前历史窗口内的 PDF，不自动“同意接收”或交换资料。
 - **文本回复**：必须有当前单人授权、确定原文和会话指纹；顺序发送，发后回读。不完整历史或结果不明时停止，不自动重发。
 
-本机依赖 macOS 应用路径、`ps` 和 SIGUSR1 Inspector 入口；Windows 不能直接照搬。接口运行于客户端上下文，不是已验证的独立外部 REST 服务。
+macOS 使用原有应用路径、`ps` 和 SIGUSR1；Windows 通过 CIM 核对实际主进程和路径，调用 Node 的 Windows debug handler 接入现有客户端，并核对监听端口的 PID 和 loopback 绑定。两种入口都不自动重启客户端。接口运行于客户端上下文，不是已验证的独立外部 REST 服务。
 
 ## 安装与使用
 
@@ -48,11 +48,13 @@ node scripts/boss.mjs help
 node --test scripts/runtime.test.mjs
 ```
 
+Windows 使用 PowerShell 与本机 Node.js，无需 WSL、`ps` 或 Unix 信号。`BOSS_APP_MAIN` 可显式指定安装的 exe；通常直接使用 CIM 返回的唯一主进程路径。敏感输出在新建子目录中保存：Windows 使用仅当前用户与 SYSTEM 可访问的受保护 ACL，已有目录权限过宽则拒绝写入；macOS 保持 0600 文件模式。全部离线测试：`node --test scripts/*.test.mjs`。
+
 业务操作前阅读 [SKILL.md](SKILL.md) 及其对应参考文档。所有输出使用新路径；创建或加载 skill 不代表授权发消息。
 
 ## 验证范围
 
-本次实际验证了登录状态、100条联系人读取、3份加密成员明文导出与哈希校验、REA 所选源码分析、Electron fuses，以及8项离线测试。聊天历史、在线摘要、PDF和单人发送入口有此前成功记录；新脚本没有为发布进行真实发送，部分新命令尚未完整重测。详见 [验证记录](references/verification.md)。
+macOS 的既有验证记录保持独立，见 [验证记录](references/verification.md)。2026-10-23 Windows 实测及离线发送测试见 [Windows 报告](references/windows-validation.md)。离线测试通过不代表向真实候选人发送成功；本轮没有真实发送、索要或接受简历、交换联系方式。
 
 仓库只包含 skill、脚本、离线测试和说明，不包含 BOSS 安装包、候选人资料、聊天记录、简历、Cookie、token 或原始验证数据。
 

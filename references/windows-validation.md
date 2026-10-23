@@ -1,0 +1,103 @@
+# Windows 限定范围验证（2026-10-23）
+
+## 环境与范围
+
+基线 `1394825caa61bab1cb0c92692811af3d09290fe3`，分支 `codex/windows-validation`。本报告只记录这台电脑的实际结果，不把 Mac 历史记录、接口存在或离线夹具当作 Windows 业务验证。候选人由用户指定；报告不包含姓名、UID、聊天原文或简历内容。没有真实发送、索要/同意接收简历、交换联系方式。
+
+| 项目 | 本机结果与来源 |
+|---|---|
+| Windows | Windows 11 Pro x64，10.0.26200 / build 26200；Win32_OperatingSystem |
+| BOSS | 安装于 `C:\Program Files\boss-zhipin`；exe 文件/产品版本 1.7.5.1066；解密后的 package.json 为 1.7.5 |
+| Electron | 22.3.24；Inspector 中的 `process.versions.electron`，与 crashpad 参数交叉核对 |
+| 内置 Node | 16.17.1；客户端运行时 `process.versions.node` |
+| 脚本 Node | 24.18.0 x64 |
+| REA | npm CLI 6.7.0；源码独立 checkout `morluto/rea`，提交 `45a411e8f8314b844bc20aef57afb59991c4a637`，未声称从源码构建 |
+| 调试入口 | Node `process._debugProcess(pid)` 的 Windows debug handler；不使用 `ps`、SIGUSR1、修改 fuses 或重新启动客户端 |
+
+REA 本机部署：先核对 dry-run，只添加 Codex 的 REA 注册并安装配套 REA skill，保留配置备份及其他 MCP。`doctor --client codex --format json` 的 scoped `healthy=true`；`environment_healthy=false` 反映未安装与本任务无关的原生分析引擎。`mcp doctor --json` 实际启动成功，207/207 工具、6/6 prompts，`binary_session` 请求成功。当前聊天工具列表未热加载 REA，因此实际包分析使用 CLI；启动诊断不冒充当前聊天的 MCP 调用。自建 JS 样例静态分析成功，Evidence `ev_85e0b80b0417e6e9b891f74297123547e4c6f38465560c5767862c390a98dae0`。
+
+## 逐项实测
+
+| 能力 | 状态 | 实际证据与边界 |
+|---|---|---|
+| 路径、进程定位 | Windows 已验证 | CIM 唯一识别主进程，排除 renderer、crashpad；实际 exe 与 Inspector 的 execPath 一致 |
+| 现有进程调试接入 | Windows 已验证 | 临时启用 127.0.0.1 Inspector，核对 TCP 所有者、PID、exe、Electron；完成后监听消失，原主进程保持运行。另在本次自行开启的既有 Inspector 上验证 withBoss 不关闭它，随后由该测试的创建者显式清理 |
+| 登录状态 | Windows 已验证 | `_sdk_getLoginStatus` 返回 `code=0,data=true`，最终复查仍登录；未读取凭据 |
+| 联系人列表 | Windows 已验证，两页范围 | 第1、2页各100条，页内UID唯一、两页UID交集为0；CLI 仍输出 `paginationVerified=false` |
+| 联系人完整分页 | 未验证 | 两页不同只证明本次 page 参数有区分；未核对总数、末页、稳定快照或全量覆盖 |
+| 指定候选人聊天 | Windows 已验证，单样本 | UID、姓名及联系人 jobId 唯一匹配后返回2条消息，`hasMore=false`；不推广到其它候选人或游标分页 |
+| 在线简历摘要 | Windows 已验证，单样本 | 正常打开的 `/web/frame/c-resume/`；已初始化 `wasm_canvas-1.0.2-5122.js` getter 成功；UID/姓名一致，返回教育3、工作2、项目0条 |
+| 在线简历全文 | 未验证 | getter 只提供结构化导出，输出保留 `fullTextVerified=false`；0条项目不证明候选人没有项目 |
+| 本地 openResumeWindow 直接调用 | 仅静态发现及运行时函数存在 | 未直接调用 `_sdk_openResumeWindow`，不能把它标为业务成功入口；实际在线摘要从正常界面已经加载的 frame 读取 |
+| 已接收 PDF 下载、文本读取 | 未验证，缺少测试材料 | 指定样本当前返回历史中没有已接收预览附件链接；资料卡不当作PDF。不换人、不索要、不自动接受 |
+| 文本发送 | 仅离线验证 | 身份、授权、正文哈希、会话变化/完整性、锁、attempt 防重复、结果不明不重试；全部用自建夹具，真实SDK未调用 |
+| Mac 兼容 | 静态及离线契约检查 | 原路径、`ps`、SIGUSR1、0600保留；本机不能运行Mac，未声称回归实机验证通过 |
+
+原始输出仅在本机 gitignored 的 `outputs/` 下，联系人、聊天和摘要使用受保护的 Windows ACL；未提交原始运行数据。没有导出 Cookie、token、socket 认证值或密码缓存。
+
+## Windows 包、明文与 REA
+
+ASAR 共 16,725 个文件成员，115,427,681 字节；头部 SHA256 为 `7f65a7dc3eb18751c882c7a2bebcbbb37e9c83585f90b29efc02300e1063cc2e`。成员标记 `bzl-aes-256-gcm-v2`，密文长度包含额外28字节，不能按明文 size 提取后声称成功解包。三个选定成员都通过原客户端 `fs.readFileSync(app.asar/member)` 返回明文，大小及声明 SHA256 匹配后才保存；导出的目标代码未执行。
+
+| 成员 | 明文字节 | 实际等于声明的 SHA256 |
+|---|---:|---|
+| package.json | 2,383 | `2efb03c074b7a263231535d899f7a2c79b0be9d19e7cd0f5b6e82ee381c69ece` |
+| preload.js | 39,469 | `ff8076af013043aa728a56c4cfb1ad86754fa511cc68459c1747311f8c41f296` |
+| assets/index.9904514e.js | 971,840 | `bda622b2a5327c530530642eca4db834251141dcdcbc302fcec8576b194316c0` |
+
+当前 root renderer 的 script 资源也指向上述 Windows bundle；没有沿用 Mac 的 `index.d8de00b1.js`。`package.main=./main.jsc`，本次未反编译主进程字节码或恢复完整主进程源码。
+
+REA 三文件分析 Evidence `ev_045241168c77ebed3f7fc4b6fec62619f1cbefbc442c1a063d59b5a0f336b36b`：2个 JS 文件解析成功，0个解析失败，声明完整性矛盾为0。静态核对了 `get-socket-port`、Socket.IO `/main`、SDK登录、联系人和历史入口；未导出运行中的认证信息。图与语义预算有限，动态通道/属性未恢复，不能宣称完整调用图。
+
+REA fuses Evidence `ev_1bf6aca11ca296072a6e1c25aba5e82779c116db140d9c977d6e6a32621c1b55`，exe SHA256 `4ed1e331d067e09cf242830c9baeb543b8446d057576436c7ddd40bde2eea521`：`EnableNodeCliInspectArguments=enabled`。仅作为静态前提；Inspector 另做了实际接入与清理验证。
+
+## 重新定位 Windows 在线简历入口
+
+以下位置来自本机哈希已核对的 Windows 成员，offset 为 JavaScript UTF-16字符位置，不能当作二进制偏移。定位后用 REA 静态分析及实际已打开的 frame 交叉核对：
+
+1. `preload.js` 的 `openResumeWindow`：REA 源范围第7行、列36075–36206，语义查询 Evidence `ev_4c15ce74ff37bc18977a66776ca4d8858bf8ea1cb7dba8d7aef391ed4c2c70ca` 找到该方法。其动态 funId 关系仍未知。
+2. Windows renderer 中 `openResume`（offset 92469–92604）构造 `_sdk_openResumeWindow`，加入当前 `openWith`，经 `Zi` → `window.$socket.send`；`Zi` 的 `actType` 为 `message`。
+3. 同一 renderer 的 `openResumeWindow` 分发（887401–887693）明确把 `online / anonymous / attachment` 转为各自枚举，选择“在线简历 / 匿名简历 / 附件简历”标题，再委派 `zl.openResume`。这证明本地代码区分在线与附件，但不证明每条分支已运行。
+4. REA 对原 bundle 的较大语义预算分析 Evidence `ev_295745bf63077048f2755935a600e5dde9bf6d1b509ab8e456b36cd4e2cd8177` 仍部分覆盖，未自动保留该分发节点。另从已验哈希源码按 AST 精确切出 `Zi`、`openResume`、`openResumeWindow` 三个函数体，添加独立声明便于静态解析，并保留原范围/hash映射；没有执行代码、添加猜测连线或冒充完整应用。
+5. 该局部视图 REA Evidence `ev_09589a11705b0195de9fdc2cabaef764bf4c2459117ef8e2a509157319d0c8ae`，函数查询 `ev_0f96103ab561e91ab1baf8a74f594763ad7da27f9ce6e901158299c72da0f4c3` 找到 `openResume`，覆盖仍 partial，动态调用不因此变为已证明。
+6. 运行时确认正常 recruiter 的 `BossZhipinBridge.openResumeWindow` 为函数。只对指定候选人使用正常界面的“在线简历”控件后，实际出现唯一 `/web/frame/c-resume/`，从其已加载模块 getter 取得结构化摘要并匹配 UID/姓名。没有把静态 SDK 路径当成已验证的外部 REST，未重置 WASM 或新建 challenge。
+
+初始字面量 application-graph trace 没有匹配，属于部分图的无匹配结果，不能证明功能不存在；后续改用已有 semantic function 身份定位。完整主进程/native SDK 和服务端鉴权仍未恢复。
+
+## 适配、失败与复现
+
+- 独立 `platform.mjs`：CIM 路径/进程查询、Windows debug handler、TCP 归属、平台 ASAR 路径和私有输出目录；macOS 分支保留原实现。外部 Node 的 debug handler 是内部 API，升级 Node/Electron 后必须重新实测；失败时停止，不用信号或重启兜底。实现依据：[Node 24.18.0 Windows DebugProcess](https://github.com/nodejs/node/blob/v24.18.0/src/node_process_methods.cc#L378)。
+- 原始离线测试在 Windows 为7/8通过，0600断言实际得到0666：POSIX mode 不能证明 Windows 访问控制。现在新目录以仅当前用户与 SYSTEM 的受保护 ACL 创建，实际读取文件/父目录 DACL 验证；宽权限已有目录拒绝保存，避免只跳过断言。
+- 本机 Windows PowerShell 的 `Get-Acl` 自动加载失败，改用 .NET `Directory.GetAccessControl`，不关闭执行策略或修改安全配置。
+- 临时 Inspector 关闭附近出现过一次 `ECONNRESET`。只对 `/json/list` 的 reset/socket discovery 重试一次，连续失败和超时仍报错；业务/发送从不自动重试。已加入离线故障回归。
+- Windows 自动激活只支持默认9229；自定义 `BOSS_INSPECTOR_URL` 必须已有监听，避免在另一个端口遗留未核对的 Inspector。
+- 在线摘要第一次/用户报告打开后的首次重试均因没有 resume frame 停止。正常在线简历界面加载后成功；frame 不存在时不猜人、不伪造摘要。
+- PDF缺材料；Windows真实发送明确未执行；没有部署、合并或发布镜像。
+
+独立离线红方审阅确认的边界已修复并加入回归：Windows 大小写/父目录别名导致 attempt 与 output 冲突；output权限检查晚于发送；锁记录写入异常未进入清理；ASAR companion 根 junction 可越界（此项为原有缺陷）。另修复发送前第二次历史的 `hasMore` 变化不参与完整性判断。去掉最后一项检查的隔离副本会被新增回归测试识别；所有变异都在离线VM/自建文件夹具内，没有调用真实SDK。
+
+路径比较使用现有祖先的 realpath，并在 Windows 折叠大小写、拒绝尾点/尾空格/ADS；已用真实目录 junction 与合成发送编排交叉检查。输出和 attempt 父目录在连接客户端前预检。磁盘故障、进程崩溃或检查后的外部文件系统变化仍可能使结果无法落盘，attempt 的保留用于防止自动重试，不能声称跨故障原子提交或服务端幂等已验证。
+
+最终 Windows 离线检查：`node --test scripts/*.test.mjs` 为39/39通过（包括嵌套子用例），无跳过；新增 Inspector 锁故障用例通过VM执行当前runtime源码，确认 writeSync 失败时关闭FD、删除本次锁、不触发调试或回调，并确认冲突时保留他人的锁。另完成四份生产脚本的 `node --check` 和 `git diff --check`。未添加生产 npm 依赖；直接分发的四份 `.mjs` 按LF计为36,498字节，基线26,767字节，增加9,731字节，来自平台适配、权限/路径与清理校验；本项目没有待构建的原生二进制。Windows 权限与 junction 测试在真实文件系统运行，业务发送始终在离线VM中。
+
+独立复核已重新检查上述修复和带引号 `--type` 参数过滤，没有确认新的可达finding。映射盘与UNC/设备命名空间之间的路径别名、ASAR检查到读取之间并发替换目录的竞态仍未验证；本轮只使用本机普通绝对路径和稳定安装目录，不把当前路径检查宣传成任意命名空间/并发对抗下的保证。Mac实机与服务端幂等也仍未验证。
+
+在本机现有登录客户端上复现（输出用新文件）：
+
+```powershell
+node scripts/boss.mjs doctor
+node scripts/boss.mjs status --output outputs/new-private/status.json
+node scripts/asar.mjs 'C:\Program Files\boss-zhipin\resources\app.asar' inventory
+node scripts/boss.mjs extract --member preload.js --file outputs/new-source/preload.js --output outputs/new-private/preload.json
+node scripts/boss.mjs list --page 1 --output outputs/new-private/page1.json
+node scripts/boss.mjs list --page 2 --output outputs/new-private/page2.json
+node scripts/boss.mjs history --uid <用户指定UID> --name '<用户指定姓名>' --job-id '<核对后的jobId>' --output outputs/new-private/history.json
+# 先通过正常界面打开同一个人的在线简历，再运行：
+node scripts/boss.mjs resume-summary --uid <用户指定UID> --name '<用户指定姓名>' --output outputs/new-private/resume.json
+node --test scripts/*.test.mjs
+node scripts/boss.mjs doctor
+```
+
+`doctor` 成功不证明登录或业务读取。`resume-summary` 没有唯一已打开 frame/getter 或身份不匹配时应失败。普通 `asar.mjs ... extract preload.js <新路径>` 对此加密成员应拒绝；不能改成忽略校验。PDF需同一指定对象的已接收入站预览附件后另行验证。真实发送另需明确授权，本报告不给出实发测试命令。
+
+验证用源码、原始结果、REA Evidence JSON、工具缓存均不随此仓库提交；报告只保留版本、静态哈希、证据ID和去标识化的范围结果。

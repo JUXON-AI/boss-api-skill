@@ -6,6 +6,8 @@
 
 默认 `/Applications/BOSS直聘.app`，ASAR 为 `Contents/Resources/app.asar`，主程序为 `Contents/MacOS/BOSS直聘`。位置改变时用实际路径，环境变量 `BOSS_APP_MAIN` 可指定主程序；不要固定旧 PID。
 
+Windows 通过 CIM 查实际运行的 `boss-zhipin.exe` 主进程，本次安装位置为 `C:\Program Files\boss-zhipin`，ASAR 为 exe 同级的 `resources\app.asar`。Windows 使用独立 debug handler 接入，不运行 `ps` 或发送 SIGUSR1。先用 `doctor` 检查；文件版本、本次 Windows bundle 与 Mac 不同，不能照抄 Mac 的成员名。
+
 ```sh
 node <skill>/scripts/asar.mjs /Applications/BOSS直聘.app/Contents/Resources/app.asar inventory > outputs/boss/asar-inventory.json
 ```
@@ -13,6 +15,8 @@ node <skill>/scripts/asar.mjs /Applications/BOSS直聘.app/Contents/Resources/ap
 清单包含精确成员名、大小、加密方式、声明明文 SHA256。只选与问题相关的 package、preload、renderer bundle；升级后 bundle 文件名会变化。
 
 本机1.7.5主入口是 `main.jsc`，不是可以直接解析的 JS 源码。preload 为 `preload.js`，本次 renderer 为 `assets/index.d8de00b1.js`。字节码字符串只提供线索，不等于恢复完整源码。
+
+上面是 Mac 记录。Windows 1.7.5.1066 的当前 root renderer 实测加载 `assets/index.9904514e.js`，`main` 同为 `./main.jsc`。本次三个明文成员均由 Windows 客户端正常读取并逐份验证声明 SHA256；REA 分析范围和在线简历入口见 [报告](windows-validation.md)。
 
 ## 导出加密成员
 

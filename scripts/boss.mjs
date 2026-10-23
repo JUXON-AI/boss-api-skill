@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {appMain, sendLock, hash, save, pid, targets, selectContact, attachmentURL, checkApproval, newSentMatches, sleep, withBoss} from './runtime.mjs';
+import {archivePath, privateDirectory, sameOutputPath} from './platform.mjs';
 
 const [op, ...args] = process.argv.slice(2), flags = {};
 for (let i=0;i<args.length;i+=2) {
@@ -37,7 +38,8 @@ function output(result, brief) {
 }
 async function main() {
   if (op==='doctor') {
-    console.log(JSON.stringify({ok:true,pid:pid(),app:appMain,inspectorListening:(await targets()).length>0,runtimeUntouched:true},null,2)); return;
+    console.log(JSON.stringify({ok:true,pid:pid(),app:appMain,archive:archivePath(appMain),platform:process.platform,node:process.versions.node,
+      inspectorListening:(await targets()).length>0,activation:process.platform==='win32'?'Node Windows debug handler':'SIGUSR1',runtimeUntouched:true},null,2)); return;
   }
   if (op==='help' || !op) {
     console.log('boss.mjs doctor | status | extract --member <exact/member> --file <new-file> --output <new.json> | list --output <new.json> | history --uid <id> --name <name> --output <new.json> | resume-summary --uid <id> --name <name> --output <new.json> | attachment --uid <id> --name <name> --mid <id> --file <new.pdf> --output <new.json> | send --approval <json> --attempt <new.json> --output <new.json>'); return;
@@ -46,19 +48,22 @@ async function main() {
   if (op!=='status') required('output');
   if (flags.output && fs.existsSync(flags.output)) throw new Error('Output exists; choose a new file');
   let approval, sendFd;
-  if (op==='send') {
-    approval=JSON.parse(fs.readFileSync(required('approval'),'utf8')); checkApproval(approval);
-    required('attempt');
-    if (fs.existsSync(flags.attempt)) throw new Error('Attempt already exists; check history, do not retry');
-    if (path.resolve(flags.attempt)===path.resolve(flags.output)) throw new Error('Attempt and output paths must differ');
-    sendFd=fs.openSync(sendLock,'wx',0o600); fs.writeSync(sendFd,JSON.stringify({pid:process.pid,at:new Date().toISOString()}));
-  }
   try {
+    if (op==='send') {
+      approval=JSON.parse(fs.readFileSync(required('approval'),'utf8')); checkApproval(approval);
+      required('attempt');
+      if (fs.existsSync(flags.attempt)) throw new Error('Attempt already exists; check history, do not retry');
+      if (sameOutputPath(flags.attempt,flags.output)) throw new Error('Attempt and output paths must differ');
+      const outputDirectory=path.dirname(path.resolve(flags.output)), attemptDirectory=path.dirname(path.resolve(flags.attempt));
+      privateDirectory(outputDirectory);
+      if (!sameOutputPath(outputDirectory,attemptDirectory)) privateDirectory(attemptDirectory);
+      sendFd=fs.openSync(sendLock,'wx',0o600); fs.writeSync(sendFd,JSON.stringify({pid:process.pid,at:new Date().toISOString()}));
+    }
     await withBoss(async ctx => {
       if (op==='extract') {
         const member=required('member'), file=path.resolve(required('file'));
-        if (path.posix.isAbsolute(member) || member.includes('\\') || member.split('/').some(x=>!x || x==='..' || x==='.') || file===path.resolve(flags.output) || fs.existsSync(file)) throw new Error('Exact archive member and separate new output file required');
-        const archive=path.resolve(path.dirname(appMain),'../Resources/app.asar');
+        if (path.posix.isAbsolute(member) || member.includes('\\') || member.split('/').some(x=>!x || x==='..' || x==='.') || sameOutputPath(file,flags.output) || fs.existsSync(file)) throw new Error('Exact archive member and separate new output file required');
+        const archive=archivePath(appMain);
         const fd=fs.openSync(archive,'r'); let entry;
         try {
           const prefix=Buffer.alloc(16); fs.readSync(fd,prefix,0,16,0);
@@ -70,10 +75,10 @@ async function main() {
           entry=current;
         } finally {fs.closeSync(fd);}
         if(!entry || entry.files || entry.link || entry.unpacked || !Number.isSafeInteger(entry.size) || entry.size>64*1024*1024 || !/^[a-f0-9]{64}$/.test(entry.integrity?.hash ?? '')) throw new Error('Choose a bounded packed member with declared SHA256');
-        fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});
+        privateDirectory(path.dirname(file));
         const result=await ctx.main(`
           const fs=process.mainModule.require('fs'),crypto=process.mainModule.require('crypto');
-          const bytes=fs.readFileSync(data.archive+'/'+data.member);
+          const bytes=fs.readFileSync(process.mainModule.require('path').join(data.archive,...data.member.split('/')));
           const digest=crypto.createHash('sha256').update(bytes).digest('hex');
           if(bytes.length!==data.size||digest!==data.sha256)throw new Error('Runtime plaintext does not match declared member integrity');
           fs.writeFileSync(data.file,bytes,{flag:'wx',mode:0o600});
@@ -124,8 +129,8 @@ async function main() {
       }
       if (op==='attachment') {
         const file=path.resolve(required('file'));
-        if (file===path.resolve(flags.output) || fs.existsSync(file)) throw new Error('PDF output must be a separate new file');
-        fs.mkdirSync(path.dirname(file),{recursive:true,mode:0o700});
+        if (sameOutputPath(file,flags.output) || fs.existsSync(file)) throw new Error('PDF output must be a separate new file');
+        privateDirectory(path.dirname(file));
         const r=await history(ctx,c), mid=required('mid');
         const matches=r.zpData.messages.filter(m=>String(m.mid)===mid);
         if (matches.length!==1) throw new Error('Expected one current received attachment message; no auto-accept/exchange');
@@ -172,6 +177,7 @@ async function main() {
       if (!Number.isSafeInteger(c.friendSource) || typeof c.encryptUid!=='string' || !c.encryptUid) throw new Error('Send target metadata missing; inspect current SDK call site');
       const sdk=await ctx.renderer('view','window.iBossRoot.chat.sendMessage.toString()');
       const latest=await history(ctx,c);
+      if (latest.zpData.hasMore !== false) throw new Error('History completeness changed immediately before send');
       if (hash(JSON.stringify(latest.zpData.messages))!==approval.expectedHistorySha256) throw new Error('Conversation changed immediately before send');
       save(flags.attempt,{at:new Date().toISOString(),status:'reserved_before_invocation',recipient:{uid,name},textSha256:approval.textSha256,attempts:1});
       let invoked=false;
@@ -199,7 +205,7 @@ async function main() {
       }
     });
   } finally {
-    if(sendFd!==undefined){fs.closeSync(sendFd);fs.unlinkSync(sendLock);}
+    if(sendFd!==undefined){try{fs.closeSync(sendFd);}finally{fs.unlinkSync(sendLock);}}
   }
 }
 main().catch(error=>{console.error(JSON.stringify({ok:false,error:error.message,automaticMutationRetry:false}));process.exitCode=1;});

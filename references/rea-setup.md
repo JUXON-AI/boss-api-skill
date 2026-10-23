@@ -103,4 +103,4 @@ rea analyze-javascript-application <样例绝对目录> --format json
 
 优先通过当前会话的REA MCP工具分析同一个样例；工具未加载时用CLI并明确报告。样例不要用候选人资料，不打开BOSS、不读取账号凭据，也不发送消息。`.tools`、npm缓存和验收输出不提交到团队skill仓库。
 
-REA部署验收通过后，再继续本skill的BOSS安装包分析。**REA能在Windows启动或分析样例，不代表BOSS读取、简历或发送已经通过Windows验证。** Windows部署命令在本次文档更新中仅核对了写法，没有在真实Windows机器验收。
+REA部署验收通过后，再继续本skill的BOSS安装包分析。**REA能在Windows启动或分析样例，不代表BOSS读取、简历或发送已经通过Windows验证。** 最初的部署指南仅核对Windows命令写法；2026-10-23已在Windows 11 x64实际完成本地安装、Codex注册、scoped doctor、MCP启动诊断与静态分析，逐项边界见 [Windows报告](windows-validation.md)。当前聊天是否已加载MCP工具仍需单独确认，不能由注册和启动诊断代替。

@@ -1,13 +1,13 @@
 ---
 name: boss-desktop-api
-description: 在 macOS 上用 REA 分析本机 BOSS直聘 Electron 安装包，复用登录态读取聊天、简历和执行已授权的单人文本回复。适用于 Mac 桌面端接口定位、读取及排障；Windows 尚未验证。
+description: 用 REA 分析本机 BOSS直聘 Electron 安装包，复用登录态读取聊天、简历和执行已授权的单人文本回复。macOS 已做限定验证，Windows 11 x64 已验证部分只读能力；Windows PDF和真实发送未验证。
 ---
 
 # BOSS 桌面端接口
 
 ## 平台范围
 
-**目前仅在 macOS（Mac，Apple Silicon / arm64）验证；Windows 尚未验证。** 当前脚本依赖 macOS 应用路径、`ps` 进程查询和 SIGUSR1 Inspector 接入方式，不能直接视为 Windows 可用方案。Linux 也未验证。更换平台需重新确认安装包格式、进程定位、调试入口和登录态；不能只改路径便宣称适配完成。
+**macOS（Apple Silicon / arm64）和 Windows 11 x64 已做限定范围验证。** Windows 已运行成功的项目为登录状态、两页联系人、指定单会话、已打开的在线简历摘要、加密成员明文导出；PDF和真实发送未验证，分页全量与在线全文未证明。参见 [逐项报告](references/windows-validation.md)。Linux 未验证。更换平台或版本需重新确认安装包格式、进程定位、调试入口和登录态。
 
 从已安装包定位调用链，再在正在运行的客户端中使用正常 SDK、Socket.IO 桥接和 session。接口属于客户端上下文，不能把发现的路径当成已验证的外部 REST API。
 
@@ -28,9 +28,9 @@ node <skill>/scripts/boss.mjs doctor
 node <skill>/scripts/boss.mjs status --output outputs/boss/status.json
 ```
 
-`doctor` 仅查进程和本地监听。其余运行操作可能临时给现有主进程发送 SIGUSR1 开启 Inspector；脚本核对 PID、可执行文件和 Electron 身份，完成后只关闭自己开启的 Inspector，保留 BOSS 及登录态。已有 Inspector 保持原状。若没有可用入口，停在诊断，不自动重启客户端。
+`doctor` 仅查进程和本地监听。macOS 保留 `ps` 和 SIGUSR1；Windows 用 CIM 排除 renderer/crashpad，核对实际 exe，使用 Node 的 Windows debug handler 临时开启现有主进程 Inspector。Windows 在连接前另查 TCP 端口所有者和 loopback 绑定；连接后核对 PID、可执行文件和 Electron 身份。只关闭自己开启且已验证归属的 Inspector，保留 BOSS 及登录态；已有 Inspector 保持原状。不可用时停止，不自动重启、修改 fuses 或采用 macOS 信号兜底。
 
-输出必须是新文件；原始聊天和简历以 0600 权限保存，终端只打印摘要。不读取或导出 Cookie、token、密码缓存，不把凭据装进 skill。
+输出必须是新文件；macOS 使用 0600，Windows 在写入前要求父目录具有仅当前用户及 SYSTEM 的受保护 ACL。为 Windows 输出选择新的子目录；已有目录权限不符合则报错，不更改原目录权限。终端只打印摘要。不读取或导出 Cookie、token、密码缓存，不把凭据装进 skill。
 
 ## 按任务使用
 
@@ -64,3 +64,5 @@ node <skill>/scripts/boss.mjs status --output outputs/boss/status.json
 ```sh
 node --test <skill>/scripts/runtime.test.mjs
 ```
+
+全套离线检查为 `node --test <skill>/scripts/*.test.mjs`。发送集成测试用 VM 拦截 bridge、renderer、进程与网络入口，只使用自建身份和消息夹具；不能据此把真实发送标为 Windows 已验证。

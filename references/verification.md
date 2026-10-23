@@ -5,10 +5,10 @@
 | 平台 | 验证状态 |
 |---|---|
 | macOS / Mac（Apple Silicon，arm64） | 已进行下述限定范围的验证 |
-| Windows | 尚未验证；当前脚本不声明兼容 |
+| Windows 11 x64 | 已独立实测部分只读能力；见 [Windows 验证报告](windows-validation.md) |
 | Linux | 尚未验证 |
 
-macOS 的验证结果不能外推到 Windows；应用路径、进程查询和 Inspector 接入方式都需要单独适配和验证。
+以下原有记录属于 macOS，不能外推到 Windows；Windows 的路径、CIM 进程查询、debug handler 接入和 ACL 已独立适配，逐项证据在单独报告中。
 
 ## 2026-10-23 本机只读复核
 

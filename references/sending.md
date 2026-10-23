@@ -30,8 +30,8 @@ node <skill>/scripts/boss.mjs send --approval outputs/boss/approval.json --attem
 ```
 
 1. 校验单人授权、非空正文、原文哈希和会话指纹。
-2. 获取与原招聘skill共用的发送锁；定位客户端和本人账号，核对唯一UID/姓名/可选岗位。
-3. 回读历史，要求 `hasMore=false`，确保未变化、未已有同文出站消息；核对 `friendSource`、`encryptUid`、当前SDK实现。历史超过当前已验证窗口时先停止，不在不完整历史上冒险重发。
+2. 先核对 attempt 和 output 的路径身份（Windows 含大小写、父目录别名检查），并预检两处输出目录权限，再获取与原招聘skill共用的发送锁。定位客户端和本人账号，核对唯一UID/姓名/可选岗位。锁写入异常也释放本次拥有的锁；锁冲突不删既有锁。
+3. 两次发送前历史读取都要求 `hasMore=false`，确保未变化、未已有同文出站消息；核对 `friendSource`、`encryptUid`、当前SDK实现。历史超过当前已验证窗口时先停止，不在不完整历史上冒险重发。
 4. 独占创建attempt，再只调用一次 `iBossRoot.chat.sendMessage(text,'text',target)`；target来自当前联系人 `{uid,friendSource,encryptUid}`。
 5. 最多回读8次。仅当新mid、同一发送人、同一收件人和同文记录恰好一条，返回 `historyConfirmed=true`；送达和已读保持未确认。
 6. 释放锁，关闭自己开启的Inspector，保留BOSS。

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {privateDirectory} from './platform.mjs';
 
 const [archive, operation = 'inventory', member, destination] = process.argv.slice(2);
 if (!archive || !['inventory', 'extract'].includes(operation)) {
@@ -35,9 +36,12 @@ try {
     if (!Number.isSafeInteger(entry.size) || entry.size < 0 || entry.size > 64 * 1024 * 1024) throw new Error('Member exceeds 64 MiB extraction bound');
     let data;
     if (entry.unpacked) {
+      const companion = fs.lstatSync(archive + '.unpacked');
+      if (!companion.isDirectory() || companion.isSymbolicLink()) throw new Error('ASAR companion must be an ordinary directory, not a junction or symlink');
       const root = fs.realpathSync(archive + '.unpacked');
       const src = fs.realpathSync(path.join(root, member));
-      if (!src.startsWith(root + path.sep)) throw new Error('Unpacked member outside archive companion directory');
+      const relative = path.relative(root, src);
+      if (!relative || relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) throw new Error('Unpacked member outside archive companion directory');
       data = fs.readFileSync(src);
     } else {
       const offset = Number(entry.offset) + 8 + headerSize;
@@ -47,7 +51,7 @@ try {
     }
     if (data.length !== entry.size) throw new Error('Member size mismatch');
     if (entry.declaredSha256 && crypto.createHash('sha256').update(data).digest('hex') !== entry.declaredSha256) throw new Error('Declared plaintext integrity mismatch; no output written');
-    fs.mkdirSync(path.dirname(path.resolve(destination)), {recursive: true, mode: 0o700});
+    privateDirectory(path.dirname(path.resolve(destination)));
     fs.writeFileSync(destination, data, {flag: 'wx', mode: 0o600});
     console.log(JSON.stringify({member, output: path.resolve(destination), bytes: data.length,
       sha256: crypto.createHash('sha256').update(data).digest('hex'), executed: false}));

@@ -3,18 +3,25 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {defaultAppMain, windowsProcesses, selectWindowsMain, activateInspector, verifyWindowsListener, privateDirectory} from './platform.mjs';
 
-export const appMain = process.env.BOSS_APP_MAIN || '/Applications/BOSS直聘.app/Contents/MacOS/BOSS直聘';
+export let appMain = ['win32', 'darwin'].includes(process.platform) ? defaultAppMain(process.platform, process.env, []) : (process.env.BOSS_APP_MAIN || '');
 export const sendLock = process.env.BOSS_SEND_LOCK || path.join(os.tmpdir(), 'boss-recruiting-send.lock');
 const endpoint = new URL(process.env.BOSS_INSPECTOR_URL || 'http://127.0.0.1:9229');
-if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password || endpoint.pathname !== '/') throw new Error('Inspector must be a loopback HTTP origin');
+if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash) throw new Error('Inspector must be a loopback HTTP origin');
 export const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function save(file, value, exclusive = true) {
-  fs.mkdirSync(path.dirname(path.resolve(file)), {recursive: true, mode: 0o700});
+  privateDirectory(path.dirname(path.resolve(file)));
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n', {mode: 0o600, flag: exclusive ? 'wx' : 'w'});
 }
 export function pid() {
+  if (process.platform === 'win32') {
+    const main = selectWindowsMain(windowsProcesses(), process.env.BOSS_APP_MAIN);
+    appMain = main.ExecutablePath;
+    return main.ProcessId;
+  }
+  if (process.platform !== 'darwin') throw new Error('Runtime platform is unverified; use Windows or macOS');
   const matches = execFileSync('ps', ['-axo', 'pid=,command='], {encoding: 'utf8'}).split('\n')
     .map(row => row.match(/^\s*(\d+)\s+(.*)$/)).filter(Boolean)
     .filter(m => m[2] === appMain || m[2].startsWith(appMain + ' '));
@@ -22,14 +29,16 @@ export function pid() {
   return Number(matches[0][1]);
 }
 export async function targets() {
-  try {
-    const response = await fetch(new URL('json/list', endpoint), {signal: AbortSignal.timeout(1500)});
+  for (let attempt = 0; attempt < 2; attempt++) try {
+    const response = await fetch(new URL('json/list', endpoint), {signal: AbortSignal.timeout(1500), redirect: 'error', headers: {connection: 'close'}});
     if (!response.ok) throw new Error('Inspector HTTP ' + response.status);
     const result = await response.json();
     if (!Array.isArray(result)) throw new Error('Unexpected Inspector discovery body');
     return result;
   } catch (error) {
     if (error.cause?.code === 'ECONNREFUSED') return [];
+    // A closing Inspector can reset discovery. Retry only this read, never a business call.
+    if (attempt === 0 && ['ECONNRESET', 'UND_ERR_SOCKET'].includes(error.cause?.code)) { await sleep(50); continue; }
     throw error;
   }
 }
@@ -62,18 +71,23 @@ export async function withBoss(callback) {
   const bossPid = pid();
   const lockPath = path.join(os.tmpdir(), 'boss-desktop-inspector.lock');
   const lockFd = fs.openSync(lockPath, 'wx', 0o600);
-  fs.writeSync(lockFd, JSON.stringify({pid: process.pid, at: new Date().toISOString()}));
   let ws, started = false, identityVerified = false, evaluate;
   const pending = new Map();
   try {
+    fs.writeSync(lockFd, JSON.stringify({pid: process.pid, at: new Date().toISOString()}));
     let list = await targets();
     if (!list.length) {
-      process.kill(bossPid, 'SIGUSR1'); started = true;
+      if (process.platform === 'win32' && endpoint.port !== '9229')
+        throw new Error('Windows auto-activation requires the default 9229 endpoint; custom endpoints must already be listening');
+      // Recheck the PID/path immediately before asking the OS to enable debugging.
+      if (pid() !== bossPid) throw new Error('BOSS main process changed before Inspector activation');
+      started = true; activateInspector(bossPid);
       for (let i = 0; i < 30 && !list.length; i++) { await sleep(150); list = await targets(); }
     }
     if (list.length !== 1) throw new Error('Expected one Inspector target; stop rather than restarting BOSS');
+    if (process.platform === 'win32') verifyWindowsListener(Number(endpoint.port || 80), bossPid);
     const url = new URL(list[0].webSocketDebuggerUrl);
-    if (url.protocol !== 'ws:' || url.hostname !== '127.0.0.1' || url.port !== endpoint.port) throw new Error('Unexpected Inspector WebSocket endpoint');
+    if (url.protocol !== 'ws:' || url.hostname !== '127.0.0.1' || (url.port || '80') !== (endpoint.port || '80') || url.username || url.password || url.search || url.hash) throw new Error('Unexpected Inspector WebSocket endpoint');
     ws = new WebSocket(url);
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Inspector connection timeout')), 5000);
@@ -97,7 +111,7 @@ export async function withBoss(callback) {
       if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text);
       return r.result.value;
     };
-    const identity = await evaluate('({pid:process.pid,execPath:process.execPath,electron:process.versions.electron})');
+    const identity = await evaluate('({pid:process.pid,execPath:process.execPath,electron:process.versions.electron,node:process.versions.node,platform:process.platform,arch:process.arch})');
     if (identity.pid !== bossPid || fs.realpathSync(identity.execPath) !== fs.realpathSync(appMain) || !identity.electron) throw new Error('Inspector does not belong to the selected BOSS main process');
     identityVerified = true;
     const main = (body, data = {}) => evaluate(`(async()=>{
@@ -125,7 +139,7 @@ export async function withBoss(callback) {
     } finally {
       if (ws) ws.close();
       for (const waiter of pending.values()) {clearTimeout(waiter.timer); waiter.reject(new Error('Inspector closed'));}
-      fs.closeSync(lockFd); fs.unlinkSync(lockPath);
+      try { fs.closeSync(lockFd); } finally { fs.unlinkSync(lockPath); }
     }
   }
 }
