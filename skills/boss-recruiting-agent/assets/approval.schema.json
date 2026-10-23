@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BOSS one-recipient send approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "recipient",
+    "text",
+    "textSha256",
+    "approved",
+    "approval",
+    "expectedHistorySha256"
+  ],
+  "properties": {
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "name"
+      ],
+      "properties": {
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1200
+    },
+    "textSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "approved": {
+      "const": true
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "userMessage",
+        "approvedTextSha256",
+        "recipientCount"
+      ],
+      "properties": {
+        "userMessage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvedTextSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "recipientCount": {
+          "const": 1
+        }
+      }
+    },
+    "expectedHistorySha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

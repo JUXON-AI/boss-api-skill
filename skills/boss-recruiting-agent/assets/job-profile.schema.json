@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BOSS recruiting job profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "employment_type",
+    "job_name",
+    "boss_job_id",
+    "company",
+    "location",
+    "salary",
+    "days_per_week",
+    "minimum_months",
+    "responsibilities",
+    "hard_requirements",
+    "scoring_weights",
+    "message_policy"
+  ],
+  "properties": {
+    "employment_type": {
+      "enum": [
+        "internship",
+        "full_time",
+        "campus",
+        "general"
+      ]
+    },
+    "job_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boss_job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "company": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "minLength": 1
+    },
+    "salary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "days_per_week": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 7
+    },
+    "minimum_months": {
+      "type": "number",
+      "minimum": 0
+    },
+    "responsibilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "hard_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scoring_weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "core_role_skills",
+        "project_depth",
+        "engineering_habits",
+        "learning_and_collaboration"
+      ],
+      "properties": {
+        "core_role_skills": {
+          "type": "number",
+          "minimum": 0
+        },
+        "project_depth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "engineering_habits": {
+          "type": "number",
+          "minimum": 0
+        },
+        "learning_and_collaboration": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "message_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_substantive_rounds",
+        "require_human_approval_before_send",
+        "require_fresh_history_before_send",
+        "allowed_channels",
+        "may_promise_email",
+        "may_make_final_decision"
+      ],
+      "properties": {
+        "max_substantive_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "require_human_approval_before_send": {
+          "const": true
+        },
+        "require_fresh_history_before_send": {
+          "const": true
+        },
+        "allowed_channels": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "BOSS",
+              "resume_email"
+            ]
+          }
+        },
+        "may_promise_email": {
+          "const": false
+        },
+        "may_make_final_decision": {
+          "const": false
+        }
+      }
+    },
+    "post_description": {
+      "type": "string"
+    }
+  }
+}

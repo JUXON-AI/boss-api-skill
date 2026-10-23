@@ -1,0 +1,13 @@
+{
+  "job_profile": "./job-profile.json",
+  "run_manifest": "./run-manifest.json",
+  "lark": {
+    "cli": "replace-with-current-machine-lark-cli-launcher",
+    "talent_base": {
+      "url": "replace-with-user-confirmed-base-url",
+      "base_token": "replace-with-base-resource-id-not-oauth-token",
+      "table_id": "replace-with-talent-table-id",
+      "corpus_table_id": "replace-with-hr-corpus-table-id"
+    }
+  }
+}

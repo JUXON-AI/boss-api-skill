@@ -1,0 +1,37 @@
+{
+  "job_name": "后端实习生",
+  "boss_job_id": "example",
+  "company": "Example Company",
+  "location": "西安雁塔区",
+  "salary": "100-120元/天",
+  "days_per_week": 5,
+  "minimum_months": 3,
+  "responsibilities": [
+    "参与后端服务的设计与开发",
+    "使用 Vibe Coding 提升代码质量与开发效率",
+    "协助系统功能迭代与维护"
+  ],
+  "hard_requirements": [
+    "能够现场到岗",
+    "每周至少到岗5天",
+    "实习至少3个月"
+  ],
+  "scoring_weights": {
+    "core_role_skills": 35,
+    "project_depth": 30,
+    "engineering_habits": 20,
+    "learning_and_collaboration": 15
+  },
+  "message_policy": {
+    "max_substantive_rounds": 2,
+    "require_human_approval_before_send": true,
+    "require_fresh_history_before_send": true,
+    "allowed_channels": [
+      "BOSS",
+      "resume_email"
+    ],
+    "may_promise_email": false,
+    "may_make_final_decision": false
+  },
+  "employment_type": "internship"
+}
