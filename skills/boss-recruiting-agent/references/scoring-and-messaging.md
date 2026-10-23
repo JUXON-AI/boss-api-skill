@@ -93,13 +93,17 @@ After round 2, generate the HR handoff summary. Do not continue technical interv
 
 Before an internal handoff:
 
-> 简历已收到并完成初步评估，经历与岗位方向比较匹配。后续会由招聘团队进一步复核；若进入下一轮，我们会通过 BOSS 或您简历中的邮箱联系并确认面试安排，最终结果以正式通知为准。
+> 好的，了解了，我把你的能力情况和到岗安排整理一下，后续有进展会在 BOSS 上联系你。
 
 After a real Base/HR handoff exists:
 
-> 简历已提交给招聘团队进一步审核。若通过本轮筛选，我们会通过 BOSS 或您简历中的邮箱联系并确认下一步安排，最终结果以正式通知为准。
+> 简历和沟通情况已整理给招聘团队复核，后续有进展会在 BOSS 上联系你。
 
-Use contact channels only when the company workflow supports them. Do not guarantee an email.
+If an actual incoming resume email in the recruiting team's Feishu mailbox has been matched to this BOSS candidate and the current job, replace the closing sentence with:
+
+> 后续有进展会通过 BOSS 或你发送简历时使用的邮箱联系你。
+
+Use the sender address of that matched resume email. A resume contact address, online profile or BOSS attachment alone does not establish this email channel. Keep the mail-message reference, identity match and job match in private local evidence only. If no matching mail is confirmed, retain the BOSS-only wording. Read and send mail under the `lark-mail` skill; this wording does not authorize sending email or prove mailbox access. Do not guarantee an email or describe an internal handoff before it actually succeeds.
 
 ## Prohibited claims
 
