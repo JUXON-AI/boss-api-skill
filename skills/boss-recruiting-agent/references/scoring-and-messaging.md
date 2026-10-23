@@ -2,6 +2,8 @@
 
 ## Evidence hierarchy
 
+For internships, clarify capabilities through ordinary conversation: technologies, tools, personally owned features, and work the candidate can complete independently. Do not request code verification, exercises, benchmark results or validation materials. First messages start with “你好”, without prefixing a name.
+
 Use the current run snapshot as the only candidate-specific source. Within a snapshot:
 
 1. `history.zpData.messages` is the authoritative conversation source.
@@ -21,8 +23,8 @@ Use a 0–100 score for dimensions with enough evidence:
 | 20–39 | Very limited or secondhand evidence |
 | 40–59 | Basic alignment, mostly self-reported with no concrete detail |
 | 60–74 | Concrete relevant evidence with some technical ownership |
-| 75–89 | Strong evidence, multiple details, validation or measurable outcome |
-| 90–100 | Exceptional depth or independently verified production evidence |
+| 75–89 | Detailed relevant capability descriptions and personal responsibility; internships do not require a validation exercise |
+| 90–100 | Exceptional relevant depth and clearly described scope; do not turn internship chat into a proof exercise |
 
 If a dimension has no usable evidence, use `null`. Never replace missing evidence with zero.
 
@@ -35,12 +37,14 @@ Default dimensions and weights:
 | `engineering_habits` | 20 |
 | `learning_and_collaboration` | 15 |
 
-Compute `ability_score` over known dimensions only:
+For internships, the legacy `engineering_habits` key means development-tool usage and practical working ability, including AI-assisted development. It does not require a code-verification answer. Compute the base ability score over known dimensions only:
 
 ```text
 sum(weight × score for non-null dimensions)
 ÷ sum(weight for non-null dimensions)
 ```
+
+Optional internship award bonus: record base score and bonus separately; final score is min(100, base + bonus). Use the strongest job-relevant technical competition award, not the sum of awards. Default editable rubric: national first/second/third = +10/+8/+6; provincial = +6/+4/+2; school = +2/+1/+1. Keep unspecified levels/prizes pending. Candidate self-report may receive a provisional bonus, clearly labeled as self-report; do not ask for certificates just to continue chat. Unknown capability dimensions remain null, and awards do not increase evidence coverage or establish hiring eligibility. `scripts/scoring.mjs` computes these values from reviewed dimension inputs; keyword matches never become ability scores automatically.
 
 Use `evidence_coverage_percent = sum(weight of non-null dimensions)`. Report both the score and coverage. A score without coverage is not a pass.
 
@@ -50,7 +54,7 @@ Use four fit factors with equal unit scale:
 
 - role skill alignment: 35
 - project/proof depth: 25
-- engineering and AI-assisted validation: 15
+- practical development and tool usage: 15 (for internships; no validation exercise)
 - confirmed logistics: 25
 
 Use the same known-dimension normalization. Missing logistics stays unknown. An explicit location, schedule, duration, or start-date conflict produces `hard_condition_status=conflict` and caps `job_fit_score` at 39. A candidate preference that has not been confirmed is `unknown`, not a conflict.
@@ -75,7 +79,7 @@ These are workflow recommendations only. A human still decides interview and hir
 
 ### Round 1
 
-Confirm role direction, project ownership, AI-assisted workflow, and how generated code was validated. Request an attachment only when it is necessary to verify material claims. Ask no more than three concise questions.
+For internships, ask what technologies and AI tools the candidate can use, what features they personally built, and what they can complete independently. Invite relevant competition awards as an optional addition. Ask no more than three concise questions and use already provided answers. Do not ask interns to validate code, explain a verification process, take tests, or submit evidence materials. Full-time questions depend on the confirmed job profile. Do not routinely request attachments.
 
 ### Round 2
 
