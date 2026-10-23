@@ -84,6 +84,18 @@ lark-cli auth qrcode '<本次输出的verification_url原文>' --output outputs/
 
 二维码命令的URL必须取自这次真实响应，不能编造、改写或重复使用过期链接。先创建相对输出目录。向用户先展示原始授权URL，再内联展示PNG二维码，并明确：“请用你本人飞书扫码确认授权，完成后回复‘已授权’。”不能只生成文件而不把图片显示出来。
 
+Windows PowerShell 实测中，npm 的 `lark-cli.cmd` 批处理包装器会把授权URL里的 `&` 再交给 cmd 解析，导致参数被截断，出现缺少 `--output` 和 `user_code is not recognized`。不要修改授权URL或关闭执行策略；核对已安装包的实际 Node 入口后直接运行，保留URL作为单个参数。本机 CLI 1.0.81 用以下方式成功生成二维码：
+
+```powershell
+$larkLauncher = (Get-Command lark-cli.cmd).Source
+$larkRunner = Join-Path (Split-Path $larkLauncher) 'node_modules\@larksuite\cli\scripts\run.js'
+# 该路径须在当前机器确认存在，其他安装布局按实际文件调整。
+node $larkRunner --version
+node $larkRunner auth qrcode $verificationUrl --output outputs/lark-auth/feishu-login.png
+```
+
+`$verificationUrl` 是本次真实响应中的原始值。也可使用已核对的原生 `lark-cli.exe` 启动器避免批处理解析；本机已验证其版本和用户状态检查，二维码成功记录来自上述 Node 入口。不要把包含URL的整条命令重新拼给 cmd。
+
 例如可使用 `![飞书扫码授权](<二维码文件绝对路径>)` 显示刚生成的本地图片。CLI参数用工作区相对路径；展示图片时使用所在Agent支持的本地图片方式。URL需保持原样，不编码/解码或重新拼查询参数。
 
 展示后将控制权交给用户，不在同一轮里立即阻塞轮询。当前流程的device_code仅保留到该次授权结束，不输出给用户、不提交仓库，不跨新的授权流程复用。不索要密码、Cookie、token或appSecret。
