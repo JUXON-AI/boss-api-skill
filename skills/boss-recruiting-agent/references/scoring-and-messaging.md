@@ -28,6 +28,8 @@ Use a 0–100 score for dimensions with enough evidence:
 
 If a dimension has no usable evidence, use `null`. Never replace missing evidence with zero.
 
+Cost gate: after one review of the existing compact resume/greeting packet, if the reviewed `abilityBaseScore` is still null (“待了解”), skip that candidate for this batch. Do not spend another enrichment pass, delegate deeper research or send capability questions to fill an entirely unknown base. Keep the null score and source, with a local skip reason; this is neither a screening pass nor an automatic rejection notification. A known numeric base with some null dimensions remains eligible for ordinary review. Competition bonuses cannot rescue an unknown base. Apply this gate to the reviewed scoring result, not the batch collector's lexical `analysis.abilityScore`, which is deliberately null for every unreviewed record.
+
 Default dimensions and weights:
 
 | Dimension | Weight |
