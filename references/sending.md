@@ -29,7 +29,7 @@
 node <skill>/scripts/boss.mjs send --approval outputs/boss/approval.json --attempt outputs/boss/send-attempt.json --output outputs/boss/send-result.json
 ```
 
-1. 校验单人授权、非空正文、原文哈希和会话指纹。
+1. 校验单人授权、非空正文、原文哈希和会话指纹。指纹统一使用 runtime 的 `historyFingerprint(messages)`；只排除每条消息顶层会随读取刷新的 `securityId`，正文、双方身份、mid、时间及其余字段仍参与哈希，正文内部同名字段也不排除。history 命令已经返回该指纹，不再手工对整段原始 JSON 求哈希。旧的原始 JSON 指纹在不匹配时拒绝发送，须重新审阅。
 2. 先核对 attempt 和 output 的路径身份（Windows 含大小写、父目录别名检查），并预检两处输出目录权限，再获取与原招聘skill共用的发送锁。定位客户端和本人账号，核对唯一UID/姓名/可选岗位。锁写入异常也释放本次拥有的锁；锁冲突不删既有锁。
 3. 两次发送前历史读取都要求 `hasMore=false`，确保未变化、未已有同文出站消息；核对 `friendSource`、`encryptUid`、当前SDK实现。历史超过当前已验证窗口时先停止，不在不完整历史上冒险重发。
 4. 独占创建attempt，再只调用一次 `iBossRoot.chat.sendMessage(text,'text',target)`；target来自当前联系人 `{uid,friendSource,encryptUid}`。

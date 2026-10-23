@@ -1,11 +1,11 @@
 ---
 name: boss-recruiting-agent
-description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮沟通、HR语料检索和飞书人才库交接。真人决定面试与录用；技术调用依赖 boss-desktop-api，目前仅在 Mac 限定验证，Windows 未验证。
+description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮沟通、HR语料检索和飞书人才库交接。真人决定面试与录用；技术调用依赖 boss-desktop-api，Mac 和 Windows 仅验证具体技术能力，完整招聘流程未验证。
 ---
 
 # BOSS 招聘流程
 
-使用 `$boss-desktop-api` 读取当前客户端事实，本 skill 负责岗位条件、沟通、初筛建议和飞书交接。实习和全职均适用；实际客户端操作仅在 macOS Apple Silicon 做过限定验证，Windows 尚未验证。流程文档不等于已完成跨平台适配。
+使用 `$boss-desktop-api` 读取当前客户端事实，本 skill 负责岗位条件、沟通、初筛建议和飞书交接。实习和全职均适用；macOS Apple Silicon 和 Windows 11 x64 的技术操作仅做限定验证，具体范围以根目录 Windows 报告和 Mac 记录为准。完整两轮初筛、飞书交接尚未验证，流程文档不代表业务全链路已跑通。
 
 ## 准备
 
@@ -29,7 +29,7 @@ description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮�
 
 ## 工作步骤
 
-1. 用 `node <api-skill>/scripts/boss.mjs doctor` 和 `status` 检查现有客户端；Windows接入未适配时先记录缺口，不照搬Mac信号。
+1. 用 `node <api-skill>/scripts/boss.mjs doctor` 和 `status` 检查现有客户端；Windows 使用技术skill已适配的 CIM 和调试入口；遇到范围外能力先记录缺口，不照搬Mac信号。
 2. 对已授权候选人获取最新快照：`node <api-skill>/scripts/boss.mjs history --uid <数字uid> --name <姓名> --job-id <联系人jobId> --output <新文件>`。岗位匹配字段是联系人 `jobId`，不是 `encryptJobId`；未知时先核实。在线摘要和附件读取按技术skill说明执行。
 3. 起草/评分前读 `references/scoring-and-messaging.md`；多候选人任务再读 `references/orchestration.md`。需要并行时给每个subagent仅一人的快照、岗位和输出schema，返回证据、疑问及草稿，不能发送。
 4. 第一轮围绕代表项目、本人职责和实际交付问关键问题。开发岗按岗位需要了解AI写码后的检查与验证；不把所有岗位都问成编程面试。

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import {appMain, sendLock, hash, save, pid, targets, selectContact, attachmentURL, checkApproval, newSentMatches, sleep, withBoss} from './runtime.mjs';
+import {appMain, sendLock, hash, historyFingerprint, save, pid, targets, selectContact, attachmentURL, checkApproval, newSentMatches, sleep, withBoss} from './runtime.mjs';
 import {archivePath, privateDirectory, sameOutputPath} from './platform.mjs';
 
 const [op, ...args] = process.argv.slice(2), flags = {};
@@ -101,9 +101,9 @@ async function main() {
       const c=await contact(ctx,uid,name);
       if (op==='history') {
         const r=await history(ctx,c), messages=r.zpData.messages;
-        output({at:new Date().toISOString(),contact:c,history:r,historySha256:hash(JSON.stringify(messages)),
+        output({at:new Date().toISOString(),contact:c,history:r,historySha256:historyFingerprint(messages),
           coverage:{hasMore:r.zpData.hasMore ?? null,requestedCount:30,complete:r.zpData.hasMore===false}},
-          {ok:true,uid,name,count:messages.length,hasMore:r.zpData.hasMore ?? null,historySha256:hash(JSON.stringify(messages))}); return;
+          {ok:true,uid,name,count:messages.length,hasMore:r.zpData.hasMore ?? null,historySha256:historyFingerprint(messages)}); return;
       }
       if (op==='resume-summary') {
         const value=await ctx.main(`
@@ -170,7 +170,7 @@ async function main() {
       }
       const first=await history(ctx,c), before=first.zpData.messages;
       if (first.zpData.hasMore !== false) throw new Error('History completeness is unverified; no send until duplicate checking can cover the conversation');
-      if (hash(JSON.stringify(before))!==approval.expectedHistorySha256) throw new Error('Conversation changed since review; draft again before sending');
+      if (historyFingerprint(before)!==approval.expectedHistorySha256) throw new Error('Conversation changed since review; draft again before sending');
       if (before.some(m=>m.body?.text===approval.text && m.to?.uid===uid)) throw new Error('Approved text already exists in history');
       const own=[...new Set(before.filter(m=>m.from?.uid===uid).map(m=>m.to?.uid))];
       if (own.length!==1 || !Number.isSafeInteger(own[0]) || own[0]<=0) throw new Error('Cannot verify sender account');
@@ -178,7 +178,7 @@ async function main() {
       const sdk=await ctx.renderer('view','window.iBossRoot.chat.sendMessage.toString()');
       const latest=await history(ctx,c);
       if (latest.zpData.hasMore !== false) throw new Error('History completeness changed immediately before send');
-      if (hash(JSON.stringify(latest.zpData.messages))!==approval.expectedHistorySha256) throw new Error('Conversation changed immediately before send');
+      if (historyFingerprint(latest.zpData.messages)!==approval.expectedHistorySha256) throw new Error('Conversation changed immediately before send');
       save(flags.attempt,{at:new Date().toISOString(),status:'reserved_before_invocation',recipient:{uid,name},textSha256:approval.textSha256,attempts:1});
       let invoked=false;
       try {

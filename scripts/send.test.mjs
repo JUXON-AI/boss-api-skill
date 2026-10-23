@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import {historyFingerprint} from './runtime.mjs';
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const bossPath = path.join(scriptsDir, 'boss.mjs');
@@ -39,7 +40,7 @@ function createApproval(messages = baseMessages) {
     recipient,
     text: approvedText,
     textSha256: sha256(approvedText),
-    expectedHistorySha256: sha256(JSON.stringify(messages)),
+    expectedHistorySha256: historyFingerprint(messages),
     approved: true,
     approval: {
       userMessage: '离线集成测试自建授权夹具',
@@ -107,6 +108,22 @@ function failureOf(report) {
 function clean(files) {
   fs.rmSync(files.root, {recursive: true, force: true});
 }
+
+test('rotating history envelope securityId permits exactly one confirmed SDK invocation', () => {
+  const reviewed=baseMessages.map(m=>({...m,securityId:'review-token'}));
+  const first=reviewed.map(m=>({...m,securityId:'first-read-token'}));
+  const second=reviewed.map(m=>({...m,securityId:'final-read-token'}));
+  const confirmed=[...second,{mid:81002,from:{uid:77001},to:{uid:recipient.uid},body:{text:approvedText}}];
+  const files=createCase({approval:createApproval(reviewed),scenario:createScenario({historyResponses:[
+    historyResponse(first),historyResponse(second),historyResponse(confirmed),
+  ]})});
+  try {
+    const report=executeSend(files);
+    assert.equal(report.bossExitCode,0,JSON.stringify(report.errors));
+    assert.equal(report.fakeSendInvocations,1);
+    assert.equal(JSON.parse(fs.readFileSync(files.output,'utf8')).historyConfirmed,true);
+  } finally {clean(files);}
+});
 
 test('send selects the exact UID/name/job fixture and confines the SDK call to the fake renderer', () => {
   const confirmed = [

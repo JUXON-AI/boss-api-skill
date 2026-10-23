@@ -10,6 +10,11 @@ export const sendLock = process.env.BOSS_SEND_LOCK || path.join(os.tmpdir(), 'bo
 const endpoint = new URL(process.env.BOSS_INSPECTOR_URL || 'http://127.0.0.1:9229');
 if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash) throw new Error('Inspector must be a loopback HTTP origin');
 export const hash = value => crypto.createHash('sha256').update(value).digest('hex');
+export function historyFingerprint(messages) {
+  // Only the message envelope's per-read securityId rotates in observed history.
+  // Keep the full body, identities, IDs, timestamps and all other metadata bound.
+  return hash(JSON.stringify(messages.map(({securityId, ...message}) => message)));
+}
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function save(file, value, exclusive = true) {
   privateDirectory(path.dirname(path.resolve(file)));

@@ -5,8 +5,20 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {hash, selectContact, attachmentURL, checkApproval, newSentMatches, save} from './runtime.mjs';
+import {hash, historyFingerprint, selectContact, attachmentURL, checkApproval, newSentMatches, save} from './runtime.mjs';
 import {powershell} from './platform.mjs';
+
+test('history fingerprint ignores only rotating envelope securityId and still binds message content',()=>{
+  const message={mid:10,time:123,from:{uid:12},to:{uid:7},securityId:'old',body:{text:'原文',resume:{securityId:'body-value'}}};
+  const digest=historyFingerprint([message]);
+  assert.equal(historyFingerprint([{...message,securityId:'new'}]),digest);
+  for(const changed of [
+    {...message,mid:11}, {...message,time:124}, {...message,from:{uid:99}}, {...message,to:{uid:99}},
+    {...message,body:{...message.body,text:'改写'}}, {...message,body:{...message.body,resume:{securityId:'changed'}}},
+  ]) assert.notEqual(historyFingerprint([changed]),digest);
+  assert.notEqual(historyFingerprint([message,message]),digest);
+  assert.equal(message.securityId,'old');
+});
 
 test('candidate selection rejects same name with another UID, duplicate identities and wrong job',()=>{
   const a={uid:12,name:'测试甲',jobId:'job-a'}, b={uid:13,name:'测试甲',jobId:'job-b'};
