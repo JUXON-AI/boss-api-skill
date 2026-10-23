@@ -11,6 +11,7 @@ description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮�
 
 - `<skill>` 表示本招聘skill目录；`<api-skill>` 表示已安装的 `boss-desktop-api` 目录。不要假定当前终端正好位于某个skill目录。
 - 首次迁移机器，先按技术skill的REA部署指南检查源码、运行时和MCP连接。没有REA时按任务授权在当前机器部署并验收。
+- 需要HR语料或人才库同步时，必须先读 [飞书部署与扫码登录](references/lark-setup.md)：检测当前机器的lark-cli与 `lark-shared` / `lark-base` / `lark-drive` skills；缺少时补齐部署。验证用户身份和目标表权限，未登录或授权失效时展示飞书二维码，等待本人扫码后由Agent完成登录并重新验证。机器人就绪不能代替用户授权。
 - 读取工作区 `.codex/boss-recruiting.json`：可以内嵌job，也可用 `job_profile` 指向独立JSON；加载本次 `run_manifest`。岗位类型、职责、预算、办公条件、当前授权对象均需明确。
 - 发送前验证岗位和清单：`node <skill>/scripts/validate_contracts.mjs job <job.json>`，以及 `manifest <manifest.json>`。清单必须来自当前实际授权，模板中的虚构UID不是授权。
 - 飞书地址、表ID和lark-cli路径从当前工作区取得；仓库不含真实岗位配置、候选人资料或登录数据。只读单人任务可按用户明确指定对象执行；发送必须有清单和相应原文授权。
@@ -49,6 +50,7 @@ description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮�
 - `references/scoring-and-messaging.md`：证据、初筛评分和两轮沟通。
 - `references/hr-corpus.md`：HR审核话术的检索与维护。
 - `references/feishu-talent-base.md`：入库门槛、字段与核验。
+- `references/lark-setup.md`：CLI和飞书skills检测部署、应用配置、扫码登录及人才库连接验收。
 - `assets/job-profile.example.json` / `job-profile.full-time.example.json`：实习、全职示例；预算仅演示，需换成当前岗位事实。
 - `assets/run-manifest.example.json` / `approval.example.json`：未授权草稿；不会授权测试身份或发送。
 - `assets/candidate-evaluation.example.json` 和对应schemas：评估格式。

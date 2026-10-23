@@ -1,6 +1,8 @@
 # Feishu talent Base integration
 
-Use `lark-cli` with the user identity. Run `lark-cli auth status` and require a valid user token before Base or mail operations.
+Before corpus lookup or talent-pool sync, follow [lark-setup.md](lark-setup.md) to check/deploy the CLI and required Feishu skills on the current machine, configure the app if missing, and complete user QR authorization when needed. Use `--as user`; bot readiness is not user login. Verify the user identity, token and intended Base/table access. Reuse an existing valid session instead of forcing another scan.
+
+Until this prerequisite passes, local drafts may continue, but do not claim HR corpus approval, successful Base sync, or completed HR handoff. A dry-run is not a real write-permission test.
 
 ## Admission gate
 

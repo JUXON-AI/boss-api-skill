@@ -8,6 +8,8 @@ Use the live Feishu table configured in `./.codex/boss-recruiting.json` under `l
 
 ## Before drafting a message
 
+Complete the CLI/skill/user-login checks in [lark-setup.md](lark-setup.md) before querying the live corpus. A local starter template is not a substitute for authenticated, HR-approved rows.
+
 1. Classify the candidate situation into one or more scenario categories.
 2. Query enabled rows from the corpus. For internship jobs use `岗位类型` of `实习` or `通用`; for full-time jobs use `全职` or `通用`. Prefer the current category and applicable round, then recent updated rows.
 3. Use only enabled entries with nonempty `HR实际说法`; `AI建议话术` alone does not count as HR approval. Treat `不建议说` as a hard warning list.
