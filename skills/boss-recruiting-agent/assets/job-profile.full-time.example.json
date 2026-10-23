@@ -1,0 +1,33 @@
+{
+  "employment_type": "full_time",
+  "job_name": "示例全职后端工程师",
+  "boss_job_id": "example-full-time",
+  "company": "Example Company",
+  "location": "西安",
+  "salary": "15-25K/月",
+  "days_per_week": 5,
+  "minimum_months": 0,
+  "responsibilities": [
+    "负责后端服务的架构设计与交付",
+    "推进系统性能、稳定性和可维护性改进"
+  ],
+  "hard_requirements": [
+    "相关后端经验",
+    "能够在规定期限内入职",
+    "能够接受岗位办公地点和办公方式"
+  ],
+  "scoring_weights": {
+    "core_role_skills": 35,
+    "project_depth": 30,
+    "engineering_habits": 20,
+    "learning_and_collaboration": 15
+  },
+  "message_policy": {
+    "max_substantive_rounds": 2,
+    "require_human_approval_before_send": true,
+    "require_fresh_history_before_send": true,
+    "allowed_channels": ["BOSS", "resume_email"],
+    "may_promise_email": false,
+    "may_make_final_decision": false
+  }
+}

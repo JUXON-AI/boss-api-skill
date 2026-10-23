@@ -1,0 +1,4 @@
+interface:
+  display_name: "BOSS 招聘 Agent"
+  short_description: "AI 初筛、两轮沟通、串行发送与飞书人才库同步"
+  default_prompt: "Use $boss-recruiting-agent to screen the authorized BOSS candidates, prepare evidence-backed replies, and sync qualified candidates to the Feishu talent pool."

@@ -1,0 +1,15 @@
+{
+  "recipient": {
+    "uid": 100000001,
+    "name": "Candidate A"
+  },
+  "text": "您好，想确认您在后端项目中的具体职责和 AI 生成代码的验证方式。",
+  "textSha256": "5abcb44d14bec99c9f776bee3c71036f21a49284a544c19c1fbfc4d8b7cab7cd",
+  "approved": false,
+  "approval": {
+    "userMessage": "示例草稿，不代表实际授权",
+    "approvedTextSha256": "5abcb44d14bec99c9f776bee3c71036f21a49284a544c19c1fbfc4d8b7cab7cd",
+    "recipientCount": 1
+  },
+  "expectedHistorySha256": "REPLACE_WITH_FRESH_HISTORY_SHA256"
+}

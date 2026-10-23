@@ -2,6 +2,8 @@
 
 给 Codex / Agent 使用的 BOSS 直聘桌面端技术 skill。通过 REA 分析安装包，复用本机客户端正常登录态读取聊天和简历，并执行已授权的单人文本回复。
 
+仓库同时包含配套招聘skill、实习/全职沟通流程、HR语料模板和流程图。
+
 **目前仅在 macOS（Mac，Apple Silicon / arm64）验证。Windows 尚未验证，当前脚本不声明兼容；Linux 也未验证。** macOS 验证仅覆盖下述具体能力，不代表所有功能均已实测通过。
 
 ## 平台与前提
@@ -27,6 +29,16 @@
 
 本机依赖 macOS 应用路径、`ps` 和 SIGUSR1 Inspector 入口；Windows 不能直接照搬。接口运行于客户端上下文，不是已验证的独立外部 REST 服务。
 
+## 招聘流程资料
+
+| 资料 | 内容 |
+|---|---|
+| [招聘流程说明](docs/recruiting-workflow.md) | 岗位设置、两轮沟通、初筛入库和HR决定 |
+| [招聘流程图](docs/recruiting-flowchart.md) | 实习/全职主流程、话术审核与发送，两张图片及Mermaid源码 |
+| [HR语料模板](docs/hr-corpus-template.md) | 58个场景：通用25、实习5、全职28；全部为待HR确认草稿 |
+| [招聘skill](skills/boss-recruiting-agent/SKILL.md) | 评分证据、多人分工、授权、HR语料检索与飞书交接 |
+| [实习岗位示例](skills/boss-recruiting-agent/assets/job-profile.example.json) / [全职岗位示例](skills/boss-recruiting-agent/assets/job-profile.full-time.example.json) | 输入格式示例，不代表实际待遇或岗位授权 |
+
 ## 安装与使用
 
 把仓库作为 `boss-desktop-api` skill 安装在 Codex 的 skills 目录。已安装同名 skill 时，先检查本地修改。对于尚未安装的环境：
@@ -48,6 +60,22 @@ node scripts/boss.mjs help
 node --test scripts/runtime.test.mjs
 ```
 
+上述安装的是技术skill。若需要招聘流程，将 `skills/boss-recruiting-agent` 也安装到同级skill目录；已有同名skill时先检查本地修改。默认Codex目录下，尚未安装招聘skill时可执行：
+
+```sh
+cp -R ~/.codex/skills/boss-desktop-api/skills/boss-recruiting-agent ~/.codex/skills/boss-recruiting-agent
+```
+
+Windows PowerShell只用于复制流程文件，运行接口仍待适配：
+
+```powershell
+Copy-Item -Recurse "$env:USERPROFILE\.codex\skills\boss-desktop-api\skills\boss-recruiting-agent" "$env:USERPROFILE\.codex\skills\boss-recruiting-agent"
+```
+
+自定义了Codex目录时按实际skills路径替换。然后可以说：
+
+> 用 $boss-recruiting-agent 按实习或全职岗位，对明确指定的候选人做初筛，先生成待审回复；技术读取使用 $boss-desktop-api。
+
 业务操作前阅读 [SKILL.md](SKILL.md) 及其对应参考文档。所有输出使用新路径；创建或加载 skill 不代表授权发消息。
 
 ## 验证范围
@@ -56,4 +84,4 @@ node --test scripts/runtime.test.mjs
 
 仓库只包含 skill、脚本、离线测试和说明，不包含 BOSS 安装包、候选人资料、聊天记录、简历、Cookie、token 或原始验证数据。
 
-招聘初筛、HR话术和人才库规则由另一个 `boss-recruiting-agent` skill 负责；使用本技术 skill 不必同时执行招聘流程。
+招聘初筛、HR话术和人才库规则由仓库内的 `boss-recruiting-agent` skill 负责；接口操作统一复用根目录技术skill。业务skill没有额外的发送实现；授权样例默认未批准。飞书地址与真实岗位配置从使用者的工作区取得，不在仓库中发布。

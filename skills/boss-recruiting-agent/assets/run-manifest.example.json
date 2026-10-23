@@ -1,0 +1,15 @@
+{
+  "run_id": "2026-10-22-backend-intern-001",
+  "job_profile": "job-profile.example.json",
+  "authorized_contacting": false,
+  "candidate_source": "explicit_user_list",
+  "candidates": [
+    {
+      "uid": 100000001,
+      "name": "Candidate A",
+      "boss_job_id": "example",
+      "max_rounds": 2,
+      "notes": "示例身份，需替换为当前用户明确授权对象；此模板不授权发送。"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "candidate": {
+    "uid": 100000001,
+    "name": "Candidate A",
+    "boss_job_id": "example"
+  },
+  "state": "needs_more_info",
+  "ability_score": null,
+  "evidence_coverage_percent": 0,
+  "job_fit_score": null,
+  "hard_condition_status": "unknown",
+  "score_evidence": [
+    {
+      "dimension": "core_role_skills",
+      "score": null,
+      "evidence": "No usable evidence in the snapshot.",
+      "source": "history.zpData.messages"
+    }
+  ],
+  "confirmed_facts": [],
+  "unverified_claims": [],
+  "unknowns": [
+    "Project ownership and validation method are unknown."
+  ],
+  "attachment_status": "none",
+  "recommendation": "continue_contact",
+  "next_round": 1,
+  "proposed_message": "您好，想确认您在后端项目中的具体职责和 AI 生成代码的验证方式。",
+  "stop_conditions": [
+    "Identity or job mismatch",
+    "Candidate asks to stop contact"
+  ],
+  "requires_human_review": true
+}
