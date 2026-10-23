@@ -87,7 +87,7 @@ export function analyzeRecord(record) {
     // Lexical signals are triage aids, not verified ability scores or hiring decisions.
     reviewPriority: eligible ? (summary?.projects?.length ? 2 : 0) + (ai.length ? 1 : 0) + (backend.length ? 1 : 0) : -1,
     abilityScore: null, screeningPassed: false,
-    unknowns: ['个人交付及验证方法尚待核实', '薪资接受情况、出勤、周期和到岗日尚待确认'],
+    unknowns: ['个人负责功能、独立能力及工具使用尚待了解', '薪资接受情况、出勤、周期和到岗日尚待确认'],
   };
 }
 

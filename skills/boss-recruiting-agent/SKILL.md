@@ -13,6 +13,7 @@ description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮�
 - 首次迁移机器，先按技术skill的REA部署指南检查源码、运行时和MCP连接。没有REA时按任务授权在当前机器部署并验收。
 - 需要HR语料或人才库同步时，必须先读 [飞书部署与扫码登录](references/lark-setup.md)：检测当前机器的lark-cli与 `lark-shared` / `lark-base` / `lark-drive` skills；缺少时补齐部署。验证用户身份和目标表权限，未登录或授权失效时展示飞书二维码，等待本人扫码后由Agent完成登录并重新验证。机器人就绪不能代替用户授权。
 - 读取工作区 `.codex/boss-recruiting.json`：可以内嵌job，也可用 `job_profile` 指向独立JSON；加载本次 `run_manifest`。岗位类型、职责、预算、办公条件、当前授权对象均需明确。
+- 如配置了 `department_knowledge_registry`，按 [部门知识记录](references/department-knowledge.md) 解析当前岗位所属部门，再读取该部门的已确认口径；其他部门的政策不能自动沿用。
 - 发送前验证岗位和清单：`node <skill>/scripts/validate_contracts.mjs job <job.json>`，以及 `manifest <manifest.json>`。清单必须来自当前实际授权，模板中的虚构UID不是授权。
 - 飞书地址、表ID和lark-cli路径从当前工作区取得；仓库不含真实岗位配置、候选人资料或登录数据。只读单人任务可按用户明确指定对象执行；发送必须有清单和相应原文授权。
 

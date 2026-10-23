@@ -4,7 +4,7 @@
 
 仓库同时包含配套招聘skill、实习/全职沟通流程、HR语料模板和流程图。
 
-**macOS（Apple Silicon / arm64）和 Windows 11 x64 已做限定范围验证；Linux 未验证。** Windows 已实测登录状态、两页联系人、一个指定会话、已打开的在线简历结构化摘要，以及加密成员明文导出。单人文本真实发送及唯一新增历史回读已验证五个单人样本；送达、已读、PDF、完整分页和在线简历全文未验证。详见 [Windows 验证报告](references/windows-validation.md)。
+**macOS（Apple Silicon / arm64）和 Windows 11 x64 已做限定范围验证；Linux 未验证。** Windows 已实测登录状态、两页联系人、指定会话、在线简历结构化摘要，以及加密成员明文导出。单人文本真实发送及唯一新增历史回读已验证15个对象，其中1人另有第二轮消息确认；部分逐条UI显示送达/已读，未建立数字状态映射。PDF、完整分页和在线简历全文未验证。详见 [Windows 验证报告](references/windows-validation.md)。
 
 ## 平台与前提
 
@@ -83,7 +83,7 @@ Copy-Item -Recurse "$env:USERPROFILE\.codex\skills\boss-desktop-api\skills\boss-
 
 ## 验证范围
 
-macOS 的既有验证记录保持独立，见 [验证记录](references/verification.md)。2026-10-23 Windows 实测及离线发送测试见 [Windows 报告](references/windows-validation.md)。离线测试与业务验证分别记录；后续取得用户授权后，已对五个授权单人样本各发送一条正常招聘消息并确认各自唯一新增历史记录。尚未收到回复、完成两轮初筛或飞书交接；未索要或接受简历、交换联系方式。
+macOS 的既有验证记录保持独立，见 [验证记录](references/verification.md)。2026-10-23 Windows 实测及离线发送测试见 [Windows 报告](references/windows-validation.md)。离线测试与业务验证分别记录；实际已对15个授权对象逐人发送正常招聘消息，其中1人收到回复后又发送第二轮条件确认，共16次SDK发送均确认唯一新增历史记录。后续新流程冷读40份摘要与招呼成功；完整初筛与飞书交接仍未完成。未索要或接受简历、交换联系方式。
 
 仓库只包含 skill、脚本、离线测试和说明，不包含 BOSS 安装包、候选人资料、聊天记录、简历、Cookie、token 或原始验证数据。
 
