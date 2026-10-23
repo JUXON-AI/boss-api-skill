@@ -1,5 +1,7 @@
 # 加密包与 REA 定位
 
+首次使用或迁移机器时先完成 [REA 检查与部署](rea-setup.md)。该流程检查实际工具和运行时；不能因其他机器部署过就假设当前机器已可用。
+
 ## 确认当前包
 
 默认 `/Applications/BOSS直聘.app`，ASAR 为 `Contents/Resources/app.asar`，主程序为 `Contents/MacOS/BOSS直聘`。位置改变时用实际路径，环境变量 `BOSS_APP_MAIN` 可指定主程序；不要固定旧 PID。

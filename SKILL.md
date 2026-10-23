@@ -13,9 +13,15 @@ description: 在 macOS 上用 REA 分析本机 BOSS直聘 Electron 安装包，�
 
 本机已核对版本：BOSS 1.7.5 / Electron 22.3.24（2026-10-23）。升级后重新验证包、目标对象和返回结构。用户说“读取”时只做读取；创建或加载本 skill 本身不授权发送消息。
 
+## 首次使用：检查并部署 REA
+
+在开始本机接口定位、解包或 Windows 适配前，先按 [REA 检查与部署](references/rea-setup.md) 检查当前机器的 REA 源码、可执行运行时和实际 MCP 工具。缺少时在当前机器补齐安装及当前 Agent 客户端的集成；已有可用安装则复用，不重复克隆、重装或覆盖配置。
+
+任务已授权“缺少 REA 就部署”时，检查安装与注册计划后直接完成该范围内的部署。不要把只安装本 skill、只克隆项目、只有配置或 doctor 成功当成已经可调用。部署后必须运行版本检查、诊断和实际静态分析，再继续 BOSS 任务。当前会话未加载 MCP 工具时，可用已验证 CLI 继续并如实说明连接状态。
+
 ## 入口
 
-将下文 `<skill>` 替换为本 SKILL.md 所在目录。使用支持全局 `fetch`、`WebSocket` 的 Node.js 22+；本机测试使用 Node 24。脚本不依赖 npm 包。
+将下文 `<skill>` 替换为本 SKILL.md 所在目录。REA 6.7.0 要求 Node.js 22系列≥22.19、24系列≥24.11，或26+；BOSS脚本还需全局 `fetch`、`WebSocket`。本机测试使用 Node 24。BOSS脚本本身不依赖 npm 包。
 
 ```sh
 node <skill>/scripts/boss.mjs doctor
