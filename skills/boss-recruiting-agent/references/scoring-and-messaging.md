@@ -4,7 +4,7 @@
 
 For internships, clarify capabilities through ordinary conversation: technologies, tools, personally owned features, and work the candidate can complete independently. Do not request code verification, exercises, benchmark results or validation materials. First messages start with “你好”, without prefixing a name.
 
-Use the current run snapshot as the only candidate-specific source. Within a snapshot:
+Use the current fresh history snapshot plus explicitly recorded public GitHub observations as the only candidate-specific evidence. A GitHub URL by itself is a claim until its authorship and contribution scope have been inspected. Within a BOSS snapshot:
 
 1. `history.zpData.messages` is the authoritative conversation source.
 2. If a legacy snapshot includes `derived.latest_inbound_text` or `derived.latest_outbound_text`, they are convenience projections only. New technical history snapshots may omit `derived`; inspect the original messages and timestamps.
@@ -46,7 +46,43 @@ sum(weight × score for non-null dimensions)
 ÷ sum(weight for non-null dimensions)
 ```
 
-Optional internship award bonus: record base score and bonus separately; final score is min(100, base + bonus). Use the strongest job-relevant technical competition award, not the sum of awards. Default editable rubric: national first/second/third = +10/+8/+6; provincial = +6/+4/+2; school = +2/+1/+1. Keep unspecified levels/prizes pending. Candidate self-report may receive a provisional bonus, clearly labeled as self-report; do not ask for certificates just to continue chat. Unknown capability dimensions remain null, and awards do not increase evidence coverage or establish hiring eligibility. `scripts/scoring.mjs` computes these values from reviewed dimension inputs; keyword matches never become ability scores automatically.
+### Proof bonus
+
+Keep three quantities separate: `abilityBaseScore`, `proofBonus`, and `finalSignalScore`.
+
+```text
+proofBonus = min(24, competitionBonus + githubBonus)
+finalSignalScore = min(100, abilityBaseScore + proofBonus)
+```
+
+Proof signals affect ranking and the final signal, but never increase ability evidence coverage. An unknown `abilityBaseScore` stays unknown and is skipped even with strong awards or GitHub. A high proof bonus also cannot by itself rescue a weak base above the screening gate.
+
+Competition rubric uses the strongest job-relevant award, not the sum:
+
+| Level | 1st | 2nd | 3rd |
+| --- | ---: | ---: | ---: |
+| National | 18 | 15 | 12 |
+| Provincial | 12 | 9 | 6 |
+| School | 4 | 3 | 2 |
+
+Apply an evidence multiplier:
+
+- `verified` or `publicly_observed`: 1.0.
+- `document_provided`: 1.0, while still recording that authenticity was not independently checked.
+- `self_reported`: 0.75 provisional.
+- Unknown level, prize or relevance: 0 until resolved. Do not request certificates merely to continue the conversation.
+
+### GitHub proof
+
+A GitHub link by itself adds 0. Inspect the public repository without executing candidate code and record `repo`, `source`, `relation`, `isFork`, `candidateAuthoredCommits`, `substantiveContribution`, `mergedPullRequests`, `hasTestsOrDemo`, `jobRelevant`, and `claimStatus`. Use only `publicly_observed` or `verified` GitHub evidence for scoring.
+
+- Credit only candidate-attributable work: authored commits, merged pull requests, or clearly attributable changes in forks. A fork that only contains upstream code scores 0.
+- In a fork, compare against upstream and ignore files or commits that merely mirror the parent. Candidate-authored commits or merged changes can receive the same evidence as other repositories.
+- The strongest relevant repository contributes; do not sum every repository.
+- Start at 8 points for one substantive attributable contribution; add 4 for at least five commits or one merged PR; add 4 for at least twenty substantive commits or at least ten as repository owner; add 2 for a test suite, runnable demo, or other inspectable evidence. A fork contribution receives a 1-point discount. Cap GitHub at 18.
+- Read-only inspection can establish code presence and authorship signals. It does not prove that every listed feature works, so do not execute untrusted project code or label the capability as independently validated.
+
+`scripts/scoring.mjs` computes all derived values deterministically. Store the reviewed inputs and evidence in the candidate record; never type a final score independently.
 
 Use `evidence_coverage_percent = sum(weight of non-null dimensions)`. Report both the score and coverage. A score without coverage is not a pass.
 
@@ -68,8 +104,8 @@ Use these enum values:
 - `ready_for_contact`: enough role evidence to ask the next high-value questions; no confirmed hard conflict.
 - `needs_more_info`: evidence coverage is below 60%, core skills or project ownership is unresolved, or a critical logistics answer is pending.
 - `awaiting_candidate_reply`: a question has been sent and the next action is to wait.
-- `ai_screened_pass`: after no more than two substantive rounds, evidence coverage is at least 70%, ability score is at least 60, logistics do not conflict, and a HR handoff summary is ready.
-- `talent_pool_candidate`: ability score is at least 65 but current-role timing, logistics, or scope does not fit, or the candidate may fit another role.
+- `ai_screened_pass`: after no more than two substantive rounds, evidence coverage is at least 70%, `abilityBaseScore >= 60`, `finalSignalScore >= 65`, logistics do not conflict, and a HR handoff summary is ready. The base gate is mandatory, so proof evidence cannot convert an unknown or weak ability base into a pass.
+- `talent_pool_candidate`: `abilityBaseScore >= 65` and `finalSignalScore >= 70`, but current-role timing, logistics, or scope does not fit, or the candidate may fit another role.
 - `current_role_mismatch`: explicit hard conflict for the current job.
 - `stop_contact`: candidate declined or requested no further contact.
 
@@ -81,7 +117,7 @@ These are workflow recommendations only. A human still decides interview and hir
 
 ### Round 1
 
-For internships, ask what technologies and AI tools the candidate can use, what features they personally built, and what they can complete independently. Invite relevant competition awards as an optional addition. Ask no more than three concise questions and use already provided answers. Do not ask interns to validate code, explain a verification process, take tests, or submit evidence materials. Full-time questions depend on the confirmed job profile. Do not routinely request attachments.
+For internships, ask what technologies and AI tools the candidate can use, what features they personally built, and what they can complete independently. Invite relevant competition awards or a public GitHub contribution as an optional addition. Ask no more than three concise questions and use already provided answers. Do not ask interns to validate code, explain a verification process, take tests, or submit evidence materials. Full-time questions depend on the confirmed job profile. Do not routinely request attachments.
 
 ### Round 2
 
@@ -124,9 +160,10 @@ Return JSON matching `assets/candidate-evaluation.schema.json`, containing:
 
 - candidate identity and job identity
 - state and recommendation
-- ability score, coverage, and evidence
+- `abilityBaseScore`, `finalSignalScore`, coverage, competition bonus, GitHub bonus, proof bonus, and evidence
 - job-fit score and hard-condition status
 - confirmed facts, unverified claims, unknowns
 - attachment status
 - proposed message and stop conditions
+- candidate record path and `recordSha256` after the deterministic ledger confirms the score and state
 - `requires_human_review: true`

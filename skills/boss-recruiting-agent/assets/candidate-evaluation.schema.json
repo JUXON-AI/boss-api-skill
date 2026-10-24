@@ -4,64 +4,248 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "candidate", "state", "ability_score", "evidence_coverage_percent",
-    "job_fit_score", "hard_condition_status", "score_evidence",
-    "confirmed_facts", "unverified_claims", "unknowns", "attachment_status",
-    "recommendation", "next_round", "proposed_message", "stop_conditions",
-    "requires_human_review"
+    "candidate",
+    "state",
+    "ability_score",
+    "evidence_coverage_percent",
+    "job_fit_score",
+    "hard_condition_status",
+    "score_evidence",
+    "confirmed_facts",
+    "unverified_claims",
+    "unknowns",
+    "attachment_status",
+    "recommendation",
+    "next_round",
+    "proposed_message",
+    "stop_conditions",
+    "requires_human_review",
+    "scoring_policy_version",
+    "ability_base_score",
+    "final_signal_score",
+    "competition_bonus",
+    "github_bonus",
+    "proof_bonus",
+    "proof_signals"
   ],
   "properties": {
     "candidate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["uid", "name", "boss_job_id"],
+      "required": [
+        "uid",
+        "name",
+        "boss_job_id"
+      ],
       "properties": {
-        "uid": {"type": "integer", "minimum": 1},
-        "name": {"type": "string", "minLength": 1},
-        "boss_job_id": {"type": "string", "minLength": 1}
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boss_job_id": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "state": {
       "enum": [
-        "ready_for_contact", "needs_more_info", "awaiting_candidate_reply",
-        "ai_screened_pass", "talent_pool_candidate", "current_role_mismatch",
+        "ready_for_contact",
+        "needs_more_info",
+        "awaiting_candidate_reply",
+        "ai_screened_pass",
+        "talent_pool_candidate",
+        "current_role_mismatch",
         "stop_contact"
       ]
     },
-    "ability_score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
-    "evidence_coverage_percent": {"type": "number", "minimum": 0, "maximum": 100},
-    "job_fit_score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
-    "hard_condition_status": {"enum": ["unknown", "pass", "partial", "conflict"]},
+    "ability_score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "evidence_coverage_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "job_fit_score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "hard_condition_status": {
+      "enum": [
+        "unknown",
+        "pass",
+        "partial",
+        "conflict"
+      ]
+    },
     "score_evidence": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["dimension", "score", "evidence", "source"],
+        "required": [
+          "dimension",
+          "score",
+          "evidence",
+          "source"
+        ],
         "properties": {
           "dimension": {
             "enum": [
-              "core_role_skills", "project_depth", "engineering_habits",
-              "learning_and_collaboration", "role_alignment", "ai_validation",
+              "core_role_skills",
+              "project_depth",
+              "engineering_habits",
+              "learning_and_collaboration",
+              "role_alignment",
+              "ai_validation",
               "logistics"
             ]
           },
-          "score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
-          "evidence": {"type": "string"},
-          "source": {"type": "string", "minLength": 1}
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
-    "confirmed_facts": {"type": "array", "items": {"type": "string"}},
-    "unverified_claims": {"type": "array", "items": {"type": "string"}},
-    "unknowns": {"type": "array", "items": {"type": "string"}},
-    "attachment_status": {"enum": ["none", "request_pending", "received", "parsed", "unavailable"]},
-    "recommendation": {
-      "enum": ["continue_contact", "ready_for_hr", "hold", "talent_pool", "stop"]
+    "confirmed_facts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
-    "next_round": {"type": "integer", "minimum": 0, "maximum": 2},
-    "proposed_message": {"type": ["string", "null"], "maxLength": 1200},
-    "stop_conditions": {"type": "array", "items": {"type": "string"}},
-    "requires_human_review": {"const": true}
+    "unverified_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "attachment_status": {
+      "enum": [
+        "none",
+        "request_pending",
+        "received",
+        "parsed",
+        "unavailable"
+      ]
+    },
+    "recommendation": {
+      "enum": [
+        "continue_contact",
+        "ready_for_hr",
+        "hold",
+        "talent_pool",
+        "stop"
+      ]
+    },
+    "next_round": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "proposed_message": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1200
+    },
+    "stop_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requires_human_review": {
+      "const": true
+    },
+    "scoring_policy_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ability_base_score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "final_signal_score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 100
+    },
+    "competition_bonus": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 18
+    },
+    "github_bonus": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 18
+    },
+    "proof_bonus": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 24
+    },
+    "proof_signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "competitions",
+        "github_projects"
+      ],
+      "properties": {
+        "competitions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "github_projects": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
   }
 }

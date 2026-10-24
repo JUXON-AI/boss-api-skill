@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 
 const [type, file] = process.argv.slice(2);
-if (!type || !file) throw new Error('Usage: validate_contracts.mjs <job|manifest|approval|evaluation> <json-file>');
+if (!type || !file) throw new Error('Usage: validate_contracts.mjs <job|manifest|approval|evaluation|record> <json-file>');
 const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
 const value = type === 'job' && raw.job ? raw.job : raw;
 
@@ -61,6 +61,11 @@ if (type === 'job') {
   assert(typeof value.candidate?.boss_job_id === 'string' && value.candidate.boss_job_id.length > 0, 'candidate.boss_job_id is invalid');
   assert(states.has(value.state), 'state is invalid');
   assert(isScore(value.ability_score), 'ability_score must be null or 0..100');
+  assert(typeof value.scoring_policy_version === 'string' && value.scoring_policy_version.length > 0, 'scoring_policy_version is required');
+  assert(isScore(value.ability_base_score), 'ability_base_score must be null or 0..100');
+  assert(isScore(value.final_signal_score), 'final_signal_score must be null or 0..100');
+  for (const key of ['competition_bonus', 'github_bonus', 'proof_bonus']) assert(typeof value[key] === 'number' && value[key] >= 0 && value[key] <= 24, `${key} is invalid`);
+  assert(isObject(value.proof_signals) && Array.isArray(value.proof_signals.competitions) && Array.isArray(value.proof_signals.github_projects), 'proof_signals.competitions/github_projects must be arrays');
   assert(typeof value.evidence_coverage_percent === 'number' && value.evidence_coverage_percent >= 0 && value.evidence_coverage_percent <= 100, 'evidence_coverage_percent is invalid');
   assert(isScore(value.job_fit_score), 'job_fit_score must be null or 0..100');
   assert(['unknown', 'pass', 'partial', 'conflict'].includes(value.hard_condition_status), 'hard_condition_status is invalid');
@@ -75,6 +80,9 @@ if (type === 'job') {
   assert(Number.isInteger(value.next_round) && value.next_round >= 0 && value.next_round <= 2, 'next_round is invalid');
   assert(value.proposed_message === null || typeof value.proposed_message === 'string', 'proposed_message must be string or null');
   assert(value.requires_human_review === true, 'requires_human_review must be true');
+} else if (type === 'record') {
+  const {validateCandidateRecord} = await import('./candidate_ledger.mjs');
+  validateCandidateRecord(value);
 } else {
   throw new Error(`Unsupported contract type: ${type}`);
 }

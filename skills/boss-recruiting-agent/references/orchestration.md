@@ -23,6 +23,7 @@ Before launching subagents, require:
 
 - A confirmed job profile: title, location, salary, schedule, minimum duration, responsibilities, hard requirements, scoring weights, and approved message policy.
 - A run manifest listing exact BOSS UIDs and names. A job name or message keyword is not sufficient identity.
+- A protected `ledger_dir`; each candidate is stored at `<ledger_dir>/<boss_job_id>/<uid>.json` and passes `candidate_ledger.mjs verify`.
 - A maximum round count, normally two.
 - Confirmation that external messages are authorized for this run.
 - A check that the BOSS client is logged in and the Inspector bridge works.
@@ -36,14 +37,15 @@ A read-only single-candidate test may run without a manifest only when the user 
 ```text
 discovered
   -> identity_verified
-  -> needs_more_info | ready_for_contact | current_role_mismatch | stop_contact
+  -> skipped_unknown_base | needs_more_info | ready_for_contact | current_role_mismatch | stop_contact
   -> awaiting_candidate_reply
   -> needs_more_info | ai_screened_pass | talent_pool_candidate | current_role_mismatch
   -> HR review
   -> interview | talent_pool | closed
 ```
 
-- `needs_more_info`: evidence is incomplete, but a useful first or second-round message may still be drafted.
+- `skipped_unknown_base`: after one compact review the base ability score is still null; no enrichment, question or rejection is sent.
+- `needs_more_info`: a numeric base exists but evidence is incomplete and a useful first or second-round message may be drafted.
 - `ready_for_contact`: the next high-value question is clear and there is no confirmed hard conflict.
 - `awaiting_candidate_reply`: a message was sent and the only correct next action is to wait.
 - `ai_screened_pass`: all gate conditions in `scoring-and-messaging.md` are met; this is the first state eligible for the HR Base.
@@ -57,7 +59,8 @@ Only `ai_screened_pass` and later states may create or update a current-job Base
 Give each subagent only:
 
 - Job profile JSON
-- Candidate snapshot JSON for its one UID
+- One validated candidate record and its `recordSha256`
+- The fresh history projection for that same UID
 - Scoring and messaging reference
 - Requested output schema
 
@@ -67,7 +70,10 @@ Do not give the subagent permission to inspect unrelated candidates or to call a
 
 For every subagent result, verify:
 
-- UID and name match the manifest and snapshot.
+- UID and name match the manifest, record and fresh snapshot.
+- The job-profile hash and history fingerprint match the current files.
+- `validateCandidateRecord` deterministically recomputes every score and the state gate; a manual score mismatch fails.
+- The update uses the previously observed `recordSha256`; stale writes fail instead of overwriting.
 - Every score has a source reference.
 - Facts, AI inference, and unknowns are separated.
 - The proposed message fits the allowed round and asks no already-answered question.
@@ -100,6 +106,7 @@ If history changes between preflight and invocation, stop without sending. If th
 - Send SDK exception before invocation: inspect history, then require a new explicit retry decision.
 - SDK invoked but no record after polling: report outcome unknown; do not send again.
 - Duplicate history records found: stop the batch and investigate before further sends.
+- Candidate record verification or optimistic-lock update fails: stop that candidate; do not resolve by editing the JSON or trusting chat memory.
 - Base write fails: retry only the Base write, never the BOSS message.
 
 ## Rate and tone limits

@@ -36,7 +36,8 @@ macOS 使用原有应用路径、`ps` 和 SIGUSR1；Windows 通过 CIM 核对实
 | [招聘流程说明](docs/recruiting-workflow.md) | 岗位设置、两轮沟通、初筛入库和HR决定 |
 | [招聘流程图](docs/recruiting-flowchart.md) | 实习/全职主流程、话术审核与发送，两张图片及Mermaid源码 |
 | [HR语料模板](docs/hr-corpus-template.md) | 58个场景：通用25、实习5、全职28；全部为待HR确认草稿 |
-| [招聘skill](skills/boss-recruiting-agent/SKILL.md) | 评分证据、多人分工、授权、HR语料检索与飞书交接 |
+| [招聘skill](skills/boss-recruiting-agent/SKILL.md) | 评分证据、确定性候选人账本、多人分工、授权、HR语料检索与飞书交接 |
+| [候选人状态账本](skills/boss-recruiting-agent/references/candidate-ledger.md) | 一人一记录、历史/job profile 哈希、确定性重算、乐观锁和批量校验 |
 | [飞书部署与扫码登录](skills/boss-recruiting-agent/references/lark-setup.md) | 检查并部署lark-cli与飞书skills，用户扫码授权，核对人才库访问与同步结果 |
 | [实习岗位示例](skills/boss-recruiting-agent/assets/job-profile.example.json) / [全职岗位示例](skills/boss-recruiting-agent/assets/job-profile.full-time.example.json) | 输入格式示例，不代表实际待遇或岗位授权 |
 

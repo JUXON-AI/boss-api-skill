@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "policy_version": "2026-10-24.1",
+  "job": {
+    "boss_job_id": "example-job",
+    "job_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "candidate": {
+    "uid": 100000001,
+    "name": "Candidate A"
+  },
+  "history": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "complete": true,
+    "checked_at": "2026-10-24T03:00:00.000Z",
+    "last_mid": "200000000000001",
+    "last_direction": "out"
+  },
+  "score": {
+    "dimensions": {
+      "core_role_skills": 76,
+      "project_depth": 70,
+      "engineering_habits": 68,
+      "learning_and_collaboration": null
+    },
+    "ability_base_score": 72,
+    "evidence_coverage_percent": 85,
+    "competitions": [
+      {
+        "competition": "示例省级技术竞赛",
+        "prize": "二等奖",
+        "level": "provincial",
+        "placement": 2,
+        "jobRelevant": true,
+        "source": "private example evaluation",
+        "claimStatus": "self_reported"
+      }
+    ],
+    "github_projects": [
+      {
+        "repo": "example-user/example-backend",
+        "project": "示例后端项目",
+        "relation": "owner",
+        "isFork": false,
+        "candidateAuthoredCommits": 6,
+        "substantiveContribution": true,
+        "mergedPullRequests": 0,
+        "hasTestsOrDemo": true,
+        "jobRelevant": true,
+        "source": "https://github.com/example-user/example-backend",
+        "claimStatus": "publicly_observed"
+      }
+    ],
+    "competition_bonus": 6.75,
+    "github_bonus": 14,
+    "proof_bonus": 20.75,
+    "final_signal_score": 92.75,
+    "evaluation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "state": "ai_screened_pass",
+  "facts": {
+    "confirmed": [
+      "Identity and current job matched",
+      "Candidate accepted the confirmed logistics"
+    ],
+    "unverified": [
+      "Capability and competition evidence are candidate-reported"
+    ],
+    "unknown": [
+      "Specific collaboration behavior"
+    ]
+  },
+  "communication": {
+    "round": 2,
+    "last_outbound_mid": "200000000000001",
+    "last_outbound_at": "2026-10-24T03:00:00.000Z",
+    "pending_inbound_mids": []
+  },
+  "recommendation": "ready_for_hr",
+  "next_round": 0,
+  "next_action": "Write the verified HR handoff and then send the approved closing message",
+  "sources": [
+    "private example evaluation",
+    "public GitHub repository observation"
+  ],
+  "updated_at": "2026-10-24T03:01:00.000Z",
+  "job_fit": {
+    "score": 82,
+    "hard_condition_status": "pass"
+  }
+}

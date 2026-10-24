@@ -9,5 +9,6 @@
       "table_id": "replace-with-talent-table-id",
       "corpus_table_id": "replace-with-hr-corpus-table-id"
     }
-  }
+  },
+  "ledger_dir": "./private-ledger"
 }

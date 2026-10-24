@@ -30,5 +30,15 @@
     "Identity or job mismatch",
     "Candidate asks to stop contact"
   ],
-  "requires_human_review": true
+  "requires_human_review": true,
+  "scoring_policy_version": "2026-10-24.1",
+  "ability_base_score": null,
+  "final_signal_score": null,
+  "competition_bonus": 0,
+  "github_bonus": 0,
+  "proof_bonus": 0,
+  "proof_signals": {
+    "competitions": [],
+    "github_projects": []
+  }
 }
