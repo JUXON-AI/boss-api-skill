@@ -70,7 +70,18 @@ export function validateCandidateRecord(record) {
   if (!Array.isArray(record.score?.competitions) || !Array.isArray(record.score?.github_projects)) fail('score proof arrays are required');
   if (!Number.isInteger(record.communication?.round) || record.communication.round < 0 || record.communication.round > 2) fail('communication.round must be 0..2');
   if (!Array.isArray(record.communication?.pending_inbound_mids)) fail('communication.pending_inbound_mids must be an array');
-  if (record.history.last_direction === 'in' && record.communication.pending_inbound_mids.length === 0) fail('inbound-last history requires at least one pending inbound mid');
+  const noReplyRequired = record.communication.no_reply_required;
+  if (noReplyRequired !== undefined) {
+    if (!isObject(noReplyRequired)) fail('communication.no_reply_required must be an object');
+    if (Object.keys(noReplyRequired).some(key => !['mid', 'reason', 'source'].includes(key))) fail('communication.no_reply_required has an unsupported field');
+    if (!(Number.isSafeInteger(noReplyRequired.mid) || (typeof noReplyRequired.mid === 'string' && noReplyRequired.mid))) fail('communication.no_reply_required.mid is invalid');
+    if (noReplyRequired.mid !== record.history.last_mid) fail('communication.no_reply_required.mid must exactly match history.last_mid');
+    if (typeof noReplyRequired.reason !== 'string' || !noReplyRequired.reason.trim()) fail('communication.no_reply_required.reason is required');
+    if (typeof noReplyRequired.source !== 'string' || !record.sources.includes(noReplyRequired.source)) fail('communication.no_reply_required.source must reference record.sources');
+    if (record.history.last_direction !== 'in') fail('communication.no_reply_required requires history.last_direction=in');
+    if (record.communication.pending_inbound_mids.length !== 0) fail('communication.no_reply_required cannot coexist with pending inbound mids');
+  }
+  if (record.history.last_direction === 'in' && record.communication.pending_inbound_mids.length === 0 && noReplyRequired === undefined) fail('inbound-last history requires at least one pending inbound mid or no_reply_required');
   if (record.history.last_direction !== 'in' && record.communication.pending_inbound_mids.length !== 0) fail('pending inbound mids require history.last_direction=in');
 
   const calculated = scoreInternship(record.score.dimensions, {

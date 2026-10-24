@@ -50,6 +50,16 @@ node <skill>\scripts\candidate_ledger.mjs upsert --dir <ledger> --record <new-re
 
 A stale hash, changed job profile, duplicate identity, wrong job/UID path, incomplete history or score that differs from deterministic recomputation must stop the candidate workflow. Never bypass with a manual file overwrite.
 
+## 有来源的无需回应入站（如确认/感谢/附件收讫）
+
+When `history.last_direction` is `in` but the final inbound message is a source-backed acknowledgement that does not require an answer, keep `communication.pending_inbound_mids` empty and add `communication.no_reply_required` with:
+
+- `mid`: exactly the same value as `history.last_mid`;
+- `reason`: a nonempty explanation of why no reply is required;
+- `source`: an exact reference that also appears in the record's `sources` and points to the fresh history evidence.
+
+The optional marker is valid only when the final direction is inbound and the pending list is empty. A missing marker keeps the original fail-closed rule that an inbound-last conversation must have at least one pending inbound mid. The marker cannot coexist with pending inbound ids or appear on an outbound-last conversation.
+
 ## Batch and subagent protocol
 
 1. The coordinator reads the job profile and generated index only to choose work.

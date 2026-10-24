@@ -296,6 +296,31 @@
               "string"
             ]
           }
+        },
+        "no_reply_required": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mid",
+            "reason",
+            "source"
+          ],
+          "properties": {
+            "mid": {
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     },

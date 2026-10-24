@@ -31,7 +31,34 @@ test('deterministic score mismatch and unknown-base policy fail closed',()=>{
 
 test('inbound pending state must bind at least one exact message id',()=>{
   const bad=record({history:{...record().history,last_mid:11,last_direction:'in'},communication:{round:1,last_outbound_mid:10,last_outbound_at:'2026-10-24T03:00:00.000Z',pending_inbound_mids:[]}});
-  assert.throws(()=>validateCandidateRecord(bad),/requires at least one pending inbound mid/);
+  assert.throws(()=>validateCandidateRecord(bad),/requires at least one pending inbound mid or no_reply_required/);
+});
+
+test('source-bound no-reply acknowledgement needs no fabricated pending mid',()=>{
+  const good=record({
+    history:{...record().history,last_mid:11,last_direction:'in'},
+    communication:({round:1,last_outbound_mid:10,last_outbound_at:'2026-10-24T03:00:00.000Z',pending_inbound_mids:[],no_reply_required:{mid:11,reason:'Candidate acknowledgement requires no reply',source:'private-fixture'}})
+  });
+  assert.equal(validateCandidateRecord(good).record.communication.no_reply_required.mid,11);
+});
+
+test('no-reply evidence must bind the exact last mid and a listed nonempty source',()=>{
+  const base=record({
+    history:{...record().history,last_mid:11,last_direction:'in'},
+    communication:({round:1,last_outbound_mid:10,last_outbound_at:'2026-10-24T03:00:00.000Z',pending_inbound_mids:[],no_reply_required:{mid:11,reason:'Candidate acknowledgement requires no reply',source:'private-fixture'}})
+  });
+  assert.throws(()=>validateCandidateRecord({...base,communication:{...base.communication,no_reply_required:{...base.communication.no_reply_required,mid:12}}}),/must exactly match history.last_mid/);
+  assert.throws(()=>validateCandidateRecord({...base,communication:{...base.communication,no_reply_required:{mid:11,source:'private-fixture'}}}),/reason is required/);
+  assert.throws(()=>validateCandidateRecord({...base,communication:{...base.communication,no_reply_required:{...base.communication.no_reply_required,source:'unlisted-source'}}}),/source must reference record.sources/);
+});
+
+test('no-reply evidence cannot coexist with pending ids or a non-inbound last direction',()=>{
+  const base=record({
+    history:{...record().history,last_mid:11,last_direction:'in'},
+    communication:({round:1,last_outbound_mid:10,last_outbound_at:'2026-10-24T03:00:00.000Z',pending_inbound_mids:[],no_reply_required:{mid:11,reason:'Candidate acknowledgement requires no reply',source:'private-fixture'}})
+  });
+  assert.throws(()=>validateCandidateRecord({...base,communication:{...base.communication,pending_inbound_mids:[11]}}),/cannot coexist with pending inbound mids/);
+  assert.throws(()=>validateCandidateRecord({...base,history:{...base.history,last_direction:'out'}}),/requires history.last_direction=in/);
 });
 
 test('changed job profile is rejected before an upsert',()=>{
