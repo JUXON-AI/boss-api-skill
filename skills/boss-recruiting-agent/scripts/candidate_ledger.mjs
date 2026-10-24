@@ -33,6 +33,21 @@ function writeJsonAtomic(file, value) {
   fs.renameSync(temp, file);
 }
 
+export function upsertCandidateRecord(root, record, options = {}) {
+  validateCandidateRecord(record);
+  if (options.jobProfilePath && fileSha(options.jobProfilePath) !== record.job.job_profile_sha256) fail('job profile SHA-256 changed; re-review before updating the candidate record');
+  const target = locate(root, record.job.boss_job_id, record.candidate.uid);
+  const exists = fs.existsSync(target);
+  if (exists && !options.expectedSha256) fail('updating an existing candidate record requires --expected-sha256');
+  if (!exists && options.expectedSha256) fail('--expected-sha256 is only valid for an existing record');
+  if (exists) {
+    const actual = jsonSha(readJson(target));
+    if (actual !== options.expectedSha256) fail('stale candidate record update rejected');
+  }
+  writeJsonAtomic(target, record);
+  return {ok: true, created: !exists, path: target, recordSha256: jsonSha(record)};
+}
+
 export function validateCandidateRecord(record) {
   if (!isObject(record)) fail('candidate record must be an object');
   if (record.schema_version !== 1) fail('schema_version must be 1');
@@ -153,19 +168,11 @@ function main() {
   }
   if (command === 'upsert') {
     if (!options.dir || !options.record) fail('upsert requires --dir and --record');
-    const record = readJson(options.record);
-    validateCandidateRecord(record);
-    if (options['job-profile'] && fileSha(options['job-profile']) !== record.job.job_profile_sha256) fail('job profile SHA-256 changed; re-review before updating the candidate record');
-    const target = locate(options.dir, record.job.boss_job_id, record.candidate.uid);
-    const exists = fs.existsSync(target);
-    if (exists && !options['expected-sha256']) fail('updating an existing candidate record requires --expected-sha256');
-    if (!exists && options['expected-sha256']) fail('--expected-sha256 is only valid for an existing record');
-    if (exists) {
-      const actual = jsonSha(readJson(target));
-      if (actual !== options['expected-sha256']) fail('stale candidate record update rejected');
-    }
-    writeJsonAtomic(target, record);
-    console.log(JSON.stringify({ok: true, created: !exists, path: target, recordSha256: jsonSha(record)}, null, 2));
+    const result = upsertCandidateRecord(options.dir, readJson(options.record), {
+      expectedSha256: options['expected-sha256'],
+      jobProfilePath: options['job-profile'],
+    });
+    console.log(JSON.stringify(result, null, 2));
     return;
   }
   if (command === 'show') {
