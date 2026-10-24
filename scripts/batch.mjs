@@ -167,13 +167,14 @@ export function desktopSource(ctx) {
     return result.value;
   };
   const close = async () => {
-    await ui(`(()=>{const dialogs=[...document.querySelectorAll('.resume-container')].filter(x=>x.getBoundingClientRect().width>0);if(dialogs.length>4)throw Error('Too many resume dialogs');for(const dialog of dialogs){const b=dialog.querySelectorAll('.close-btn');if(b.length!==1)throw Error('Resume close control changed');b[0].click();}return true;})()`);
-    for(let attempt=0;attempt<20;attempt++) {
+    let lastDialogs = 0;
+    for(let attempt=0;attempt<40;attempt++) {
+      lastDialogs=await ui(`(()=>{const dialogs=[...document.querySelectorAll('.resume-container')].filter(x=>x.getBoundingClientRect().width>0);if(dialogs.length>4)throw Error('Too many resume dialogs');for(const dialog of dialogs){const b=dialog.querySelectorAll('.close-btn');if(b.length!==1)throw Error('Resume close control changed');b[0].click();}return dialogs.length;})()`);
       const count=await ctx.main(`if(views.length!==1)throw Error('Expected one recruiter view');return views[0].mainFrame.framesInSubtree.filter(f=>f.url.startsWith('https://www.zhipin.com/web/frame/c-resume/')).length;`);
       if(count===0)return;
-      await sleep(150);
+      await sleep(attempt<10?180:350);
     }
-    throw Error('Resume frames did not close; stop before opening another identity');
+    throw Error('Resume frames did not close; stop before opening another identity (dialogs='+lastDialogs+')');
   };
   const choose = async (c,row) => {
     await close();
@@ -186,6 +187,14 @@ export function desktopSource(ctx) {
     await ui(`(()=>{const x=document.querySelector('.geek-item.selected');if(x?.__vue__?.$props?.geek?.uid!==${c.uid})throw Error('User changed the active conversation');const b=document.querySelectorAll('a.resume-btn-online');if(b.length!==1)throw Error('Online resume control changed');b[0].click();return true;})()`);
   };
   return {
+    async visible() {
+      return ui(`(()=>{const list=document.querySelector('.user-list');if(!list)throw Error('user-list missing');const rows=[...document.querySelectorAll('.geek-item')].map(x=>{const g=x.__vue__?.$props?.geek;return {id:x.id,uid:g?.uid,name:x.querySelector('.geek-name')?.getAttribute('title'),jobName:g?.jobName??null,relationType:g?.relationType??null,newMsgCount:g?.newMsgCount??null,lastIsSelf:g?.lastIsSelf??null,lastTS:g?.lastTS??null,selected:x.classList.contains('selected')};});return {scrollTop:list.scrollTop,scrollHeight:list.scrollHeight,clientHeight:list.clientHeight,rows};})()`);
+    },
+    async scrollTo(top) {
+      const value=Number(top);if(!Number.isFinite(value))throw Error('Scroll top must be finite');
+      return ui(`(()=>{const list=document.querySelector('.user-list');if(!list)throw Error('user-list missing');const max=Math.max(0,list.scrollHeight-list.clientHeight);list.scrollTop=Math.max(0,Math.min(max,${value}));list.dispatchEvent(new Event('scroll',{bubbles:true}));return {scrollTop:list.scrollTop,scrollHeight:list.scrollHeight,clientHeight:list.clientHeight};})()`);
+    },
+    close,
     async list() {
       const login=await ctx.bridge('message','_sdk_getLoginStatus');
       if(login?.code!==0||login.data!==true)throw Error('BOSS login required');
@@ -194,7 +203,7 @@ export function desktopSource(ctx) {
       await ctx.main(`for(const state of data.states){const w=all.find(x=>x.id===state.id);if(!w)throw Error('Renderer changed before batch');w.setBackgroundThrottling(false);}return true;`,{states:renderState});
       const contacts=await ctx.bridge('api','zprelationGetFriendList',{page:1,pageSize:100});
       if(contacts?.code!==0||!Array.isArray(contacts.zpData?.friendList))throw Error('Contact list failed');
-      const snapshot=await ui(`(()=>{const rows=[...document.querySelectorAll('.geek-item')].map(x=>({id:x.id,uid:x.__vue__?.$props?.geek?.uid,name:x.querySelector('.geek-name')?.getAttribute('title'),selected:x.classList.contains('selected')}));return {rows,original:rows.find(x=>x.selected)};})()`);
+      const snapshot=await ui(`(()=>{const rows=[...document.querySelectorAll('.geek-item')].map(x=>{const g=x.__vue__?.$props?.geek;return {id:x.id,uid:g?.uid,name:x.querySelector('.geek-name')?.getAttribute('title'),jobName:g?.jobName??null,relationType:g?.relationType??null,newMsgCount:g?.newMsgCount??null,lastIsSelf:g?.lastIsSelf??null,lastTS:g?.lastTS??null,selected:x.classList.contains('selected')};});return {rows,original:rows.find(x=>x.selected)};})()`);
       original=Number.isSafeInteger(snapshot.original?.uid)?snapshot.original:undefined;
       return {friends:contacts.zpData.friendList,rows:snapshot.rows};
     },
@@ -203,8 +212,8 @@ export function desktopSource(ctx) {
       try {await choose(c,row);} catch(error) {error.fatal=true;throw error;}
       const probe=`(async()=>{try{const urls=[...new Set(performance.getEntriesByType('resource').map(x=>x.name).filter(x=>{try{const u=new URL(x);return u.protocol==='https:'&&u.hostname==='static.zhipin.com'&&u.pathname.startsWith('/assets/zhipin/wasm/resume/wasm_canvas-')&&u.pathname.endsWith('.js');}catch{return false;}}))];if(urls.length!==1)return {ready:false};const mod=await import(urls[0]);if(typeof mod.get_export_geek_detail_info!=='function')return {ready:false,error:'Resume getter changed'};return {ready:true,value:mod.get_export_geek_detail_info()};}catch(e){return {ready:false,error:String(e?.message??e).slice(0,160)};}})()`;
       let lastError='not initialized';
-      for(let attempt=0;attempt<16;attempt++) {
-        await sleep(300);
+      for(let attempt=0;attempt<30;attempt++) {
+        await sleep(350);
         const result=await ctx.main(`if(views.length!==1)throw Error('Expected one recruiter view');const frames=views[0].mainFrame.framesInSubtree.filter(f=>f.url.startsWith('https://www.zhipin.com/web/frame/c-resume/'));if(frames.length>1)throw Error('Multiple resume frames');return frames.length?frames[0].executeJavaScript(data.probe):null;`,{probe});
         if(result?.ready) {
           const value=typeof result.value==='string'?JSON.parse(result.value):result.value;

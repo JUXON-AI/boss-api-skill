@@ -152,3 +152,46 @@ test('a vanished original conversation fails restoration explicitly and still re
   await assert.rejects(()=>source.restore(),/restoration incomplete/);
   assert.deepEqual(web.map(x=>x.value),[true,true]);
 });
+test('desktop snapshot exposes scroll/message metadata and scroll input is finite and clamped',async()=>{
+  let scrollEvents=0;
+  const list={scrollTop:0,scrollHeight:2400,clientHeight:600,dispatchEvent(event){assert.equal(event.type,'scroll');scrollEvents++;}};
+  const row={id:'_17',classList:{contains:name=>name==='selected'},__vue__:{$props:{geek:{uid:17,jobName:'fixture-job',relationType:1,newMsgCount:2,lastIsSelf:false,lastTS:123}}},querySelector:()=>({getAttribute:()=>candidate.name})};
+  const document={querySelector:s=>s==='.user-list'?list:null,querySelectorAll:s=>s==='.geek-item'?[row]:[]};
+  const ctx={async renderer(kind,expression){assert.equal(kind,'view');return vm.runInNewContext(expression,{document,Event});}};
+  const source=desktopSource(ctx);
+  const snapshot=await source.visible();
+  assert.equal(snapshot.scrollHeight,2400);assert.equal(JSON.stringify(snapshot.rows[0]),JSON.stringify({id:'_17',uid:17,name:candidate.name,jobName:'fixture-job',relationType:1,newMsgCount:2,lastIsSelf:false,lastTS:123,selected:true}));
+  assert.equal((await source.scrollTo(99999)).scrollTop,1800);
+  assert.equal((await source.scrollTo(-10)).scrollTop,0);
+  await assert.rejects(()=>source.scrollTo(NaN),/finite/);
+  assert.equal(scrollEvents,2);
+});
+
+test('desktop close fails before clicking when the resume-dialog guard is exceeded',async()=>{
+  let clicked=false;
+  const dialog={getBoundingClientRect:()=>({width:700}),querySelectorAll:()=>[{click(){clicked=true;}}]};
+  const document={querySelectorAll:s=>s==='.resume-container'?[dialog,dialog,dialog,dialog,dialog]:[]};
+  let mainCalls=0;
+  const ctx={async renderer(kind,expression){return vm.runInNewContext(expression,{document,Event});},async main(){mainCalls++;return 1;}};
+  await assert.rejects(()=>desktopSource(ctx).close(),/Too many resume dialogs/);
+  assert.equal(clicked,false);assert.equal(mainCalls,0);
+});
+test('desktop close retries the dialog click and cannot open a new identity before the old frame closes',async()=>{
+  let closeClicks=0,frames=1,loaded=18,openedAtClick=null,nameClicked=false;
+  const closeButton={click(){closeClicks++;if(closeClicks===2)frames=0;}};
+  const dialog={getBoundingClientRect:()=>({width:700}),querySelectorAll:s=>s==='.close-btn'?[closeButton]:[]};
+  const name={getAttribute:()=>candidate.name,click(){if(frames!==0)throw Error('opened before close confirmed');nameClicked=true;loaded=candidate.uid;}};
+  const row={__vue__:{$props:{geek:{uid:candidate.uid}}},querySelector:s=>s==='.geek-name'?name:null,click(){throw Error('row root must not be clicked');}};
+  const online={click(){assert.equal(frames,0);openedAtClick=closeClicks;}};
+  const document={
+    getElementById:()=>row,
+    querySelector:()=>({__vue__:{$props:{geek:{uid:loaded}}}}),
+    querySelectorAll:s=>s==='.resume-container'&&frames?[dialog]:s==='a.resume-btn-online'?[online]:[],
+  };
+  const ctx={
+    async renderer(kind,expression){assert.equal(kind,'view');return vm.runInNewContext(expression,{document,Event});},
+    async main(body,data={}){if(data?.probe)return {ready:true,value:resume()};return frames;},
+  };
+  const value=await desktopSource(ctx).resume(candidate,row);
+  assert.equal(value.geekBaseInfo.userId,candidate.uid);assert.equal(closeClicks,2);assert.equal(openedAtClick,2);assert.equal(nameClicked,true);
+});
