@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {attachDiagnosticContext, serializeDiagnosticError} from './diagnostics.mjs';
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const runtimePath = path.join(scriptsDir, 'runtime.mjs');
@@ -111,6 +112,7 @@ async function runVmWorker(root) {
     privateDirectory: () => { throw new Error('unexpected output directory access'); },
   };
   const platformModule = synthetic('offline:platform.mjs', Object.keys(platformValues), platformValues);
+  const diagnosticsModule = synthetic('offline:diagnostics.mjs', ['attachDiagnosticContext', 'serializeDiagnosticError'], {attachDiagnosticContext, serializeDiagnosticError});
   const imports = {
     'node:fs': fsModule,
     'node:os': osModule,
@@ -118,6 +120,7 @@ async function runVmWorker(root) {
     'node:crypto': cryptoModule,
     'node:child_process': childProcessModule,
     './platform.mjs': platformModule,
+    './diagnostics.mjs': diagnosticsModule,
   };
   const runtime = new vm.SourceTextModule(runtimeSource, {
     context,

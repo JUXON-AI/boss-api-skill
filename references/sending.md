@@ -49,3 +49,13 @@ SDK返回、超时、历史写入是不同事实。找不到唯一新消息时�
 没有独立文本REST POST的成功契约；不跳过SDK正常检查，自己向MQTT/Protobuf写帧。没有封装批量发送、附件发送、接受简历、拉黑、设置不合适和交换联系方式。
 
 新approval比原 `boss-recruiting-agent/scripts/boss_bridge.mjs` 多了 `expectedHistorySha256`。两个入口不能同时运行，也不能在一个结果不明后换另一个重发。
+
+## 失败诊断
+
+失败时 CLI 的 `error` 仍是脱敏后的消息字符串；同一条 stderr JSON 另含结构化的 `diagnostic`，用于定位代码路径。它包含 `stage`、安全的 `action`、`requestId`、`elapsed`/`elapsedMs`、稳定 `code`、`name`、`message`、有限深度的 `cause`、`stack` 和受限 `context`。无业务 retry 字段始终为 `automaticMutationRetry=false`。
+
+诊断不会保存原始求值表达式、bridge payload、聊天正文、`securityId`、`encryptUid`、Cookie/token、签名 URL，也不会打印敏感的 WebSocket 帧。日志本身失败时保留原始业务异常，不改变发送结果，也不会触发重发。栈只保留可定位的 basename 与行列号，例如 `runtime.mjs:111:20`。
+
+CDP 20 秒等待、WebSocket 关闭/错误、无效帧、远端 CDP 错误和 cleanup 失败使用不同稳定 code。`started && !identityVerified` 时不会发送关闭 Inspector 的命令；该事实作为 `CLEANUP` secondary status 记录，不再追加裸 stderr 文本。未验证所有者的 cleanup 不可确认时，应人工核查本地 listener。
+
+旧版 `internal_error` 若只保留泛化摘要，无法事后还原其原始 stage/cause。耗时与 CDP timeout 接近也只能作为排查线索，不能据此确证历史原因；新的诊断用于后续可重现观测。

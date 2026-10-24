@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {appMain, sendLock, hash, historyFingerprint, save, pid, targets, selectContact, attachmentURL, checkApproval, newSentMatches, sleep, withBoss} from './runtime.mjs';
 import {archivePath, privateDirectory, sameOutputPath} from './platform.mjs';
+import {attachDiagnosticContext, serializeDiagnosticError} from './diagnostics.mjs';
 
 const [op, ...args] = process.argv.slice(2), flags = {};
 for (let i=0;i<args.length;i+=2) {
@@ -16,21 +17,43 @@ const number = (key, fallback, max=Number.MAX_SAFE_INTEGER) => {
   if (!Number.isSafeInteger(n) || n<=0 || n>max) throw new Error('--'+key+' must be a bounded positive integer');
   return n;
 };
+function elapsedSince(startedAt) {
+  return Math.max(0, Date.now() - startedAt);
+}
+async function diagnosticStep(stage, action, callback) {
+  const startedAt=Date.now();
+  try { return await callback(); }
+  catch(error) {
+    const target=error && (typeof error==='object'||typeof error==='function') ? error : new Error('Operation failed',{cause:error});
+    const duration=elapsedSince(startedAt);
+    throw attachDiagnosticContext(target,{stage,action,elapsed:duration,elapsedMs:duration});
+  }
+}
+function cleanupFailure(action, cause, startedAt, code='CLEANUP_FAILED') {
+  const error=new Error('Send lock cleanup failed',{cause});
+  error.code=code;
+  const duration=elapsedSince(startedAt);
+  return attachDiagnosticContext(error,{stage:'cleanup',action,elapsed:duration,elapsedMs:duration});
+}
 function assertSuccess(response, label) {
   if (response?.code !== 0) throw new Error(label+' failed: '+response?.code+'; use current login/permissions, do not replay credentials');
   return response;
 }
 async function friends(ctx) {
-  return assertSuccess(await ctx.bridge('api','zprelationGetFriendList',{page:number('page',1,100),pageSize:100}),'Contact list');
+  return diagnosticStep('bridge','list-contacts',async()=>assertSuccess(await ctx.bridge('api','zprelationGetFriendList',{page:number('page',1,100),pageSize:100}),'Contact list'));
 }
 async function contact(ctx, uid, name) {
-  const r=await friends(ctx);
-  return selectContact(r.zpData?.friendList ?? [],uid,name,flags['job-id']);
+  return diagnosticStep('contact','select-exact-recipient',async()=>{
+    const r=await friends(ctx);
+    return selectContact(r.zpData?.friendList ?? [],uid,name,flags['job-id']);
+  });
 }
-async function history(ctx, c) {
-  const r=assertSuccess(await ctx.bridge('api','zpChatHistoryMsg',{uid:c.uid,securityId:c.securityId,lastMsgId:0,count:30}),'History');
-  if (!Array.isArray(r.zpData?.messages)) throw new Error('History schema changed');
-  return r;
+async function history(ctx, c, action='history-read') {
+  return diagnosticStep('history',action,async()=>{
+    const r=assertSuccess(await ctx.bridge('api','zpChatHistoryMsg',{uid:c.uid,securityId:c.securityId,lastMsgId:0,count:30}),'History');
+    if (!Array.isArray(r.zpData?.messages)) throw new Error('History schema changed');
+    return r;
+  });
 }
 function output(result, brief) {
   if (flags.output) save(flags.output,result);
@@ -47,7 +70,7 @@ async function main() {
   if (!['status','extract','list','history','resume-summary','attachment','send'].includes(op)) throw new Error('Unknown operation; use help');
   if (op!=='status') required('output');
   if (flags.output && fs.existsSync(flags.output)) throw new Error('Output exists; choose a new file');
-  let approval, sendFd;
+  let approval, sendFd, operationFailure;
   try {
     if (op==='send') {
       approval=JSON.parse(fs.readFileSync(required('approval'),'utf8')); checkApproval(approval);
@@ -87,7 +110,7 @@ async function main() {
         output({at:new Date().toISOString(),archive,member,file,encryption:entry.encryption ?? null,...result},
           {ok:true,member,file,...result}); return;
       }
-      const login=await ctx.bridge('message','_sdk_getLoginStatus');
+      const login=await diagnosticStep('bridge','get-login-status',()=>ctx.bridge('message','_sdk_getLoginStatus'));
       const loggedIn=login?.code===0 && login?.data===true;
       if (op==='status') {output({at:new Date().toISOString(),...ctx.identity,loggedIn},{ok:true,...ctx.identity,loggedIn}); return;}
       if (!loggedIn) throw new Error('Client is not logged in; restore login in the existing BOSS client');
@@ -168,44 +191,85 @@ async function main() {
         output({at:new Date().toISOString(),candidate:{uid,name},messageMid:mid,file,...result},
           {ok:true,uid,name,file,...result}); return;
       }
-      const first=await history(ctx,c), before=first.zpData.messages;
+      const first=await history(ctx,c,'pre-send-history-read'), before=first.zpData.messages;
       if (first.zpData.hasMore !== false) throw new Error('History completeness is unverified; no send until duplicate checking can cover the conversation');
-      if (historyFingerprint(before)!==approval.expectedHistorySha256) throw new Error('Conversation changed since review; draft again before sending');
-      if (before.some(m=>m.body?.text===approval.text && m.to?.uid===uid)) throw new Error('Approved text already exists in history');
-      const own=[...new Set(before.filter(m=>m.from?.uid===uid).map(m=>m.to?.uid))];
-      if (own.length!==1 || !Number.isSafeInteger(own[0]) || own[0]<=0) throw new Error('Cannot verify sender account');
-      if (!Number.isSafeInteger(c.friendSource) || typeof c.encryptUid!=='string' || !c.encryptUid) throw new Error('Send target metadata missing; inspect current SDK call site');
-      const sdk=await ctx.renderer('view','window.iBossRoot.chat.sendMessage.toString()');
-      const latest=await history(ctx,c);
-      if (latest.zpData.hasMore !== false) throw new Error('History completeness changed immediately before send');
-      if (historyFingerprint(latest.zpData.messages)!==approval.expectedHistorySha256) throw new Error('Conversation changed immediately before send');
-      save(flags.attempt,{at:new Date().toISOString(),status:'reserved_before_invocation',recipient:{uid,name},textSha256:approval.textSha256,attempts:1});
+      await diagnosticStep('safety-check','verify-reviewed-history',()=>{
+        if (historyFingerprint(before)!==approval.expectedHistorySha256) throw new Error('Conversation changed since review; draft again before sending');
+        if (before.some(m=>m.body?.text===approval.text && m.to?.uid===uid)) throw new Error('Approved text already exists in history');
+      });
+      const own=await diagnosticStep('ownership','derive-sender-account',()=>{
+        const matches=[...new Set(before.filter(m=>m.from?.uid===uid).map(m=>m.to?.uid))];
+        if (matches.length!==1 || !Number.isSafeInteger(matches[0]) || matches[0]<=0) throw new Error('Cannot verify sender account');
+        return matches;
+      });
+      if (!Number.isSafeInteger(c.friendSource) || typeof c.encryptUid!=='string' || !c.encryptUid) throw attachDiagnosticContext(new Error('Send target metadata missing; inspect current SDK call site'),{stage:'sdk',action:'validate-send-target'});
+      const sdk=await ctx.renderer('view','window.iBossRoot.chat.sendMessage.toString()',{stage:'sdk',action:'inspect-send-message'});
+      const latest=await history(ctx,c,'pre-send-final-history-read');
+      if (latest.zpData.hasMore !== false) throw attachDiagnosticContext(new Error('History completeness changed immediately before send'),{stage:'safety-check',action:'verify-final-history-completeness'});
+      if (historyFingerprint(latest.zpData.messages)!==approval.expectedHistorySha256) throw attachDiagnosticContext(new Error('Conversation changed immediately before send'),{stage:'safety-check',action:'verify-final-history-fingerprint'});
+      await diagnosticStep('attempt','reserve-single-attempt',()=>save(flags.attempt,{at:new Date().toISOString(),status:'reserved_before_invocation',recipient:{uid,name},textSha256:approval.textSha256,attempts:1}));
       let invoked=false;
       try {
         await ctx.renderer('view',`(async()=>{
           if(window.iBossRoot.chat.sendMessage.toString()!==${JSON.stringify(sdk)})throw new Error('Send SDK changed');
           await window.iBossRoot.chat.sendMessage(${JSON.stringify(approval.text)},'text',${JSON.stringify({uid:c.uid,friendSource:c.friendSource,encryptUid:c.encryptUid})});
           return {invoked:true};
-        })()`);
+        })()`,{stage:'sdk',action:'send-message-once'});
         invoked=true;
         for(let i=0;i<8;i++) {
           await sleep(750);
-          const h=await history(ctx,c), matches=newSentMatches(before,h.zpData.messages,approval.text,own[0],uid);
-          if(matches.length>1) throw new Error('Multiple matching new records; manual review required');
+          const h=await history(ctx,c,'post-send-history-readback'), matches=newSentMatches(before,h.zpData.messages,approval.text,own[0],uid);
+          if(matches.length>1) throw attachDiagnosticContext(new Error('Multiple matching new records; manual review required'),{stage:'history',action:'verify-send-history'});
           if(matches.length===1) {
-            output({at:new Date().toISOString(),recipient:{uid,name},attempts:1,textSha256:approval.textSha256,
+            await diagnosticStep('result','write-confirmed-send-result',()=>output({at:new Date().toISOString(),recipient:{uid,name},attempts:1,textSha256:approval.textSha256,
               sdkInvoked:true,historyConfirmed:true,messageMid:matches[0].mid,matchingNewRecords:1,deliveryConfirmed:false,readConfirmed:false},
-              {ok:true,uid,name,historyConfirmed:true,messageMid:matches[0].mid,deliveryConfirmed:false,readConfirmed:false}); return;
+              {ok:true,uid,name,historyConfirmed:true,messageMid:matches[0].mid,deliveryConfirmed:false,readConfirmed:false})); return;
           }
         }
-        throw new Error('Send outcome unknown; inspect history, do not resend');
+        throw attachDiagnosticContext(new Error('Send outcome unknown; inspect history, do not resend'),{stage:'history',action:'confirm-send-history'});
       } catch(error) {
-        if(!fs.existsSync(flags.output)) save(flags.output,{at:new Date().toISOString(),recipient:{uid,name},sdkReturned:invoked,outcomeUnknown:true,doNotRetryAutomatically:true,error:error.message});
+        let diagnostic;
+        try { diagnostic=serializeDiagnosticError(error); }
+        catch { diagnostic={schemaVersion:1,stage:'diagnostic',action:'serialize-error',requestId:null,elapsed:null,elapsedMs:null,code:'DIAGNOSTIC_SERIALIZATION_FAILED',name:'Error',message:'Failure diagnostic unavailable',cause:null,stack:null,context:{}}; }
+        if(!fs.existsSync(flags.output)) {
+          try {
+            save(flags.output,{at:new Date().toISOString(),recipient:{uid,name},sdkReturned:invoked,outcomeUnknown:true,doNotRetryAutomatically:true,error:diagnostic.message,diagnostic});
+          } catch {}
+        }
         throw error;
       }
     });
+  } catch(error) {
+    operationFailure=error && (typeof error==='object'||typeof error==='function') ? error : new Error('Operation failed',{cause:error});
+    throw operationFailure;
   } finally {
-    if(sendFd!==undefined){try{fs.closeSync(sendFd);}finally{fs.unlinkSync(sendLock);}}
+    if(sendFd!==undefined) {
+      const cleanupFailures=[];
+      const closeStartedAt=Date.now();
+      try { fs.closeSync(sendFd); }
+      catch(error) { cleanupFailures.push(cleanupFailure('release-send-lock-descriptor',error,closeStartedAt,'SEND_LOCK_CLOSE_FAILED')); }
+      const unlinkStartedAt=Date.now();
+      try { fs.unlinkSync(sendLock); }
+      catch(error) { cleanupFailures.push(cleanupFailure('remove-send-lock-file',error,unlinkStartedAt,'SEND_LOCK_UNLINK_FAILED')); }
+      if(operationFailure && cleanupFailures.length) attachDiagnosticContext(operationFailure,{cleanup:cleanupFailures});
+      else if(!operationFailure && cleanupFailures.length) {
+        const first=cleanupFailures[0];
+        if(cleanupFailures.length>1) attachDiagnosticContext(first,{cleanup:cleanupFailures.slice(1)});
+        throw first;
+      }
+    }
   }
 }
-main().catch(error=>{console.error(JSON.stringify({ok:false,error:error.message,automaticMutationRetry:false}));process.exitCode=1;});
+main().catch(error=>{
+  let diagnostic;
+  try {
+    diagnostic=serializeDiagnosticError(error);
+    if(diagnostic.stage==='unknown') diagnostic.stage='orchestration';
+  } catch {
+    diagnostic={schemaVersion:1,stage:'diagnostic',action:'serialize-error',requestId:null,elapsed:null,elapsedMs:null,
+      code:'DIAGNOSTIC_SERIALIZATION_FAILED',name:'Error',message:'Failure diagnostic unavailable',cause:null,stack:null,context:{}};
+  }
+  try { console.error(JSON.stringify({ok:false,error:diagnostic.message,diagnostic,automaticMutationRetry:false})); }
+  catch { process.stderr.write('{"ok":false,"error":"Failure logging unavailable","automaticMutationRetry":false}\n'); }
+  process.exitCode=1;
+});

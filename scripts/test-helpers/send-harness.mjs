@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import vm from 'node:vm';
 import {pathToFileURL} from 'node:url';
 import {sameOutputPath} from '../platform.mjs';
+import {attachDiagnosticContext, serializeDiagnosticError} from '../diagnostics.mjs';
 
 const [bossPathArg, rootArg, scenarioPathArg, approvalPathArg, attemptPathArg, outputPathArg] = process.argv.slice(2);
 const bossPath = path.resolve(bossPathArg);
@@ -106,6 +107,10 @@ const platformExports = {
 const platformModule = new vm.SyntheticModule(Object.keys(platformExports), function() {
   for (const [name, value] of Object.entries(platformExports)) this.setExport(name, value);
 }, {context, identifier: 'offline:platform.mjs'});
+const diagnosticsModule = new vm.SyntheticModule(['attachDiagnosticContext', 'serializeDiagnosticError'], function() {
+  this.setExport('attachDiagnosticContext', attachDiagnosticContext);
+  this.setExport('serializeDiagnosticError', serializeDiagnosticError);
+}, {context, identifier: 'offline:diagnostics.mjs'});
 
 function fixtureHistory(index) {
   const histories = scenario.historyResponses ?? [];
@@ -148,6 +153,7 @@ const runtimeImportModules = {
   'node:crypto': cryptoModule,
   'node:child_process': childProcessModule,
   './platform.mjs': platformModule,
+  './diagnostics.mjs': diagnosticsModule,
 };
 const runtimeSource = fs.readFileSync(runtimePath, 'utf8');
 const runtimeSourceModule = new vm.SourceTextModule(runtimeSource, {
@@ -177,6 +183,7 @@ async function linkBoss(specifier) {
   if (specifier === 'node:path') return pathModule;
   if (specifier === './runtime.mjs') return runtimeSyntheticModule;
   if (specifier === './platform.mjs') return platformModule;
+  if (specifier === './diagnostics.mjs') return diagnosticsModule;
   throw new Error('Offline harness rejected boss.mjs import: ' + specifier);
 }
 
