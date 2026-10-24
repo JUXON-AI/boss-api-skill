@@ -1,11 +1,11 @@
 ---
 name: boss-recruiting-agent
-description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮沟通、HR语料检索和飞书人才库交接。真人决定面试与录用；技术调用依赖 boss-desktop-api，Windows 已验证两个两轮沟通至人才库待HR复核及交接通知的样本，其他范围见报告。
+description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮沟通、HR语料检索和飞书人才库交接。真人决定面试与录用；技术调用依赖 boss-desktop-api，Windows 已验证三个两轮沟通至人才库待HR复核及交接通知的样本，其他范围见报告。
 ---
 
 # BOSS 招聘流程
 
-使用 `$boss-desktop-api` 读取当前客户端事实，本 skill 负责岗位条件、沟通、初筛建议和飞书交接。实习和全职均适用；macOS Apple Silicon 和 Windows 11 x64 的技术操作仅做限定验证，具体范围以根目录 Windows 报告和 Mac 记录为准。Windows 已实测两个在线摘要及招呼分析、两轮沟通、评估、人才库待HR复核记录创建与回读、BOSS交接通知及独立回读的样本；不代表其他岗位、全量候选人、邮件、附件或后续面试录用全链路均已跑通。
+使用 `$boss-desktop-api` 读取当前客户端事实，本 skill 负责岗位条件、沟通、初筛建议和飞书交接。实习和全职均适用；macOS Apple Silicon 和 Windows 11 x64 的技术操作仅做限定验证，具体范围以根目录 Windows 报告和 Mac 记录为准。Windows 已实测三个在线摘要及招呼分析、两轮沟通、评估、人才库待HR复核记录创建与回读、BOSS交接通知及独立回读的样本；不代表其他岗位、全量候选人、邮件、附件或后续面试录用全链路均已跑通。
 
 ## 准备
 
