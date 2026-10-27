@@ -1,0 +1,4 @@
+interface:
+  display_name: "BOSS招聘持续跟进"
+  short_description: "按任务增量协调采集复核、人才入库与交接，按需加载本包模块并验收真实结果"
+  default_prompt: "请使用 $boss-recruiting-followup，按当前私有任务入口接续已授权岗位，处理新回复与真正漏回，达标后完成入库和交接验收。"

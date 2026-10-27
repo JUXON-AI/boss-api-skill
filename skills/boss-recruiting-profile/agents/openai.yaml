@@ -1,0 +1,4 @@
+interface:
+  display_name: "人才资料补全"
+  short_description: "从本人原始资料补全年龄性别院校及现居地，标注默认来源并回读必要字段"
+  default_prompt: "请使用 $boss-recruiting-profile，从本人原始资料补全已有入库者的可确认字段，保留未知和默认来源并核验局部写入。"

@@ -65,7 +65,7 @@ async function main() {
       inspectorListening:(await targets()).length>0,activation:process.platform==='win32'?'Node Windows debug handler':'SIGUSR1',runtimeUntouched:true},null,2)); return;
   }
   if (op==='help' || !op) {
-    console.log('boss.mjs doctor | status | extract --member <exact/member> --file <new-file> --output <new.json> | list --output <new.json> | history --uid <id> --name <name> --output <new.json> | resume-summary --uid <id> --name <name> --output <new.json> | attachment --uid <id> --name <name> --mid <id> --file <new.pdf> --output <new.json> | send --approval <json> --attempt <new.json> --output <new.json>'); return;
+    console.log('boss.mjs doctor | status | extract --member <exact/member> --file <new-file> --output <new.json> | list --output <new.json> | history --uid <id> --name <name> --output <new.json> | resume-summary --uid <id> --name <name> --output <new.json> | attachment --uid <id> --name <name> --mid <id> --file <new.pdf> --output <new.json> | send --job-id <job> --approval <json> --attempt <new.json> --output <new.json>'); return;
   }
   if (!['status','extract','list','history','resume-summary','attachment','send'].includes(op)) throw new Error('Unknown operation; use help');
   if (op!=='status') required('output');
@@ -74,6 +74,8 @@ async function main() {
   try {
     if (op==='send') {
       approval=JSON.parse(fs.readFileSync(required('approval'),'utf8')); checkApproval(approval);
+      const jobId = required('job-id');
+      if (approval.contractVersion === 2 && approval.jobId !== jobId) throw new Error('Approved job does not match --job-id');
       required('attempt');
       if (fs.existsSync(flags.attempt)) throw new Error('Attempt already exists; check history, do not retry');
       if (sameOutputPath(flags.attempt,flags.output)) throw new Error('Attempt and output paths must differ');

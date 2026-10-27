@@ -108,6 +108,15 @@ function failureOf(report) {
 function clean(files) {
   fs.rmSync(files.root, {recursive: true, force: true});
 }
+test('version 2 approval cannot be sent under another job before opening any client context', () => {
+  const files = createCase({approval: {...createApproval(), contractVersion: 2, jobId: 'another-job'}});
+  try {
+    const report = executeSend(files);
+    assert.match(failureOf(report).error, /job.*match/i);
+    assert.equal(report.fakeSendInvocations, 0);
+    assert.equal(report.withBossCalls, 0);
+  } finally {clean(files);}
+});
 
 test('rotating history envelope securityId permits exactly one confirmed SDK invocation', () => {
   const reviewed=baseMessages.map(m=>({...m,securityId:'review-token'}));

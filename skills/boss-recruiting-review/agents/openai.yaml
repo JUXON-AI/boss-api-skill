@@ -1,0 +1,4 @@
+interface:
+  display_name: "BOSS候选人证据复核"
+  short_description: "依据单人完整历史与本人简历复核能力及岗位条件，形成有原话来源的待验提案"
+  default_prompt: "请使用 $boss-recruiting-review，离线复核当前候选人的完整材料、能力评分和岗位条件，保存原话依据与待主验提案。"

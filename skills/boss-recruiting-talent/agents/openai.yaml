@@ -1,0 +1,4 @@
+interface:
+  display_name: "人才入库与交接"
+  short_description: "将正式通过筛选的候选人写入飞书人才表，完成逐字段读回及真实交接闭环"
+  default_prompt: "请使用 $boss-recruiting-talent，核验当前候选人的正式通过证据，完成授权入库、逐字段读回和BOSS交接闭环。"

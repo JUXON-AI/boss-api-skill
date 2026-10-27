@@ -1,0 +1,4 @@
+interface:
+  display_name: "BOSS招聘增量采集"
+  short_description: "只读检查已授权岗位的新招呼、新回复和真正漏回，保留完整来源与覆盖限制"
+  default_prompt: "请使用 $boss-recruiting-collect，只读检查已授权当前岗位的新招呼、新回复和真正漏回，输出有完整来源的增量清单。"

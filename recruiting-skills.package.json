@@ -1,0 +1,22 @@
+{
+  "name": "boss-recruiting-skills",
+  "version": "1.1.0",
+  "description": "BOSS招聘持续跟进本地skills集合；本清单不注册插件或执行安装",
+  "entrypoint": "boss-recruiting-followup",
+  "skills": [
+    "boss-recruiting-followup",
+    "boss-recruiting-collect",
+    "boss-recruiting-review",
+    "boss-recruiting-message",
+    "boss-recruiting-talent",
+    "boss-recruiting-profile",
+    "boss-recruiting-resume",
+    "boss-recruiting-push",
+    "boss-recruiting-audit"
+  ],
+  "layout": "skills/<name>/SKILL.md",
+  "installation": "Copy all listed skill directories as siblings into the Codex skills root; keep shared relative references intact.",
+  "containsPrivateTaskData": false,
+  "implementationSkill": "skills/boss-recruiting-agent",
+  "technicalSkill": "SKILL.md"
+}

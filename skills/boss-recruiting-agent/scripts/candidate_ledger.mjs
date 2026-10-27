@@ -23,6 +23,8 @@ function canonical(value) {
 }
 function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function jsonSha(value) { return sha256(JSON.stringify(canonical(value))); }
+// Share the ledger's existing canonical fingerprint with read-only consumers.
+export {jsonSha as canonicalJsonSha256};
 function readJson(file) { return JSON.parse(fs.readFileSync(file, 'utf8')); }
 function fileSha(file) { return sha256(fs.readFileSync(file)); }
 function writeJsonAtomic(file, value) {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "BOSS沟通与发送验收"
+  short_description: "执行已授权且主验通过的自然回复，核真实轮次并完成单次发送与独立读回"
+  default_prompt: "请使用 $boss-recruiting-message，核验本条已授权回复及真实轮次，通过统一发送入口执行一次并独立读回验收。"

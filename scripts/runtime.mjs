@@ -34,10 +34,12 @@ export function pid() {
   if (matches.length !== 1) throw new Error('Expected one running BOSS main process; no process was started');
   return Number(matches[0][1]);
 }
-export async function targets() {
+export async function targets({deadline = null} = {}) {
   const startedAt=Date.now();
   for (let attempt = 0; attempt < 2; attempt++) try {
-    const response = await fetch(new URL('json/list', endpoint), {signal: AbortSignal.timeout(1500), redirect: 'error', headers: {connection: 'close'}});
+    const remaining = deadline === null ? 1500 : Math.min(1500, deadline - Date.now());
+    if (remaining <= 0) throw stageError('Inspector discovery deadline reached', {stage: 'discovery', action: 'list-targets', code: 'DISCOVERY_DEADLINE'});
+    const response = await fetch(new URL('json/list', endpoint), {signal: AbortSignal.timeout(Math.ceil(remaining)), redirect: 'error', headers: {connection: 'close'}});
     if (!response.ok) throw new Error('Inspector HTTP ' + response.status);
     const result = await response.json();
     if (!Array.isArray(result)) throw new Error('Unexpected Inspector discovery body');
@@ -45,7 +47,7 @@ export async function targets() {
   } catch (error) {
     if (error.cause?.code === 'ECONNREFUSED') return [];
     // A closing Inspector can reset discovery. Retry only this read, never a business call.
-    if (attempt === 0 && ['ECONNRESET', 'UND_ERR_SOCKET'].includes(error.cause?.code)) { await sleep(50); continue; }
+    if (attempt === 0 && ['ECONNRESET', 'UND_ERR_SOCKET'].includes(error.cause?.code) && (deadline === null || Date.now() + 50 < deadline)) { await sleep(50); continue; }
     throw annotateError(error,{stage:'discovery',action:'list-targets',attempt:attempt+1},startedAt);
   }
 }
@@ -63,6 +65,8 @@ export function attachmentURL(message, uid) {
   return src.href;
 }
 export function checkApproval(a) {
+  if (a.contractVersion !== undefined && a.contractVersion !== 2) throw new Error('Unsupported send approval version');
+  if (a.contractVersion === 2 && (typeof a.jobId !== 'string' || !a.jobId.trim())) throw new Error('Version 2 approval must bind the exact job ID');
   if (a.approved !== true || a.approval?.recipientCount !== 1 || typeof a.approval?.userMessage !== 'string' || !a.approval.userMessage.trim()) throw new Error('Explicit single-recipient authorization required');
   if (!Number.isSafeInteger(a.recipient?.uid) || a.recipient.uid <= 0 || typeof a.recipient.name !== 'string' || !a.recipient.name) throw new Error('Invalid recipient');
   if (typeof a.text !== 'string' || !a.text.trim()) throw new Error('Nonempty text required');
@@ -98,7 +102,34 @@ function annotateError(error, context = {}, startedAt) {
   return attachDiagnosticContext(target, startedAt === undefined ? context : {...context, elapsed: elapsed(startedAt), elapsedMs: elapsed(startedAt)});
 }
 
-export async function withBoss(callback) {
+// Foreground operations may wait for our bounded read-only observer to yield.
+// This retries lock acquisition only: no business request or sender is replayed.
+export async function acquireInspectorLock(lockPath, {io = fs, alive = processId => {
+  try { process.kill(processId, 0); return true; } catch { return false; }
+}, wait = sleep, now = Date.now, waitMs = 30_000} = {}) {
+  const until = now() + waitMs;
+  for (;;) {
+    try { return io.openSync(lockPath, 'wx', 0o600); }
+    catch (error) {
+      if (error.code !== 'EEXIST' || typeof io.readFileSync !== 'function') throw error;
+      let owner;
+      try { owner = JSON.parse(io.readFileSync(lockPath, 'utf8')); } catch {
+        // open('wx') and the owner write are separate operations. Give only this
+        // initial publication window a short read-only grace; never delete it.
+        if (now() < until - waitMs + 200) { await wait(50); continue; }
+        throw error;
+      }
+      if (owner.action !== 'bounded_readonly_observer' || !Number.isSafeInteger(owner.pid) ||
+          owner.pid <= 0 || !alive(owner.pid) || now() >= until) throw error;
+      await wait(50);
+    }
+  }
+}
+
+export async function withBoss(callback, {purpose = 'operation'} = {}) {
+  if (!['operation', 'bounded_readonly_observer'].includes(purpose)) throw new Error('Unsupported Inspector session purpose');
+  const requestTimeoutMs = purpose === 'bounded_readonly_observer' ? Math.min(cdpRequestTimeoutMs, 2000) : cdpRequestTimeoutMs;
+  const socketTimeoutMs = purpose === 'bounded_readonly_observer' ? Math.min(wsConnectTimeoutMs, 2000) : wsConnectTimeoutMs;
   const connectionStartedAt = Date.now();
   let bossPid;
   try {
@@ -111,7 +142,9 @@ export async function withBoss(callback) {
   const lockStartedAt = Date.now();
   let lockFd;
   try {
-    lockFd = fs.openSync(lockPath, 'wx', 0o600);
+    lockFd = purpose === 'bounded_readonly_observer'
+      ? fs.openSync(lockPath, 'wx', 0o600)
+      : await acquireInspectorLock(lockPath);
   } catch (error) {
     throw annotateError(error, {stage: 'lock', action: 'acquire-inspector-lock'}, lockStartedAt);
   }
@@ -146,12 +179,13 @@ export async function withBoss(callback) {
   try {
     const lockWriteStartedAt = Date.now();
     try {
-      fs.writeSync(lockFd, JSON.stringify({pid: process.pid, at: new Date().toISOString()}));
+      fs.writeSync(lockFd, JSON.stringify({pid: process.pid, at: new Date().toISOString(), action: purpose}));
     } catch (error) {
       throw annotateError(error, {stage: 'lock', action: 'write-inspector-lock'}, lockWriteStartedAt);
     }
 
-    let list = await targets();
+    const setupDeadline = purpose === 'bounded_readonly_observer' ? Date.now() + 10_000 : null;
+    let list = await targets(setupDeadline === null ? {} : {deadline: setupDeadline});
     if (!list.length) {
       const activationStartedAt = Date.now();
       try {
@@ -161,8 +195,9 @@ export async function withBoss(callback) {
         started = true;
         activateInspector(bossPid);
         for (let index = 0; index < 30 && !list.length; index++) {
+          if (setupDeadline !== null && Date.now() >= setupDeadline) throw new Error('Read-only observer discovery deadline reached');
           await sleep(150);
-          list = await targets();
+          list = await targets(setupDeadline === null ? {} : {deadline: setupDeadline});
         }
       } catch (error) {
         throw annotateError(error, {stage: 'activation', action: 'activate-inspector', code: 'INSPECTOR_ACTIVATION_FAILED'}, activationStartedAt);
@@ -194,7 +229,7 @@ export async function withBoss(callback) {
         if (error) reject(error);
         else resolve();
       };
-      const timer = setTimeout(() => settle(stageError('Inspector WebSocket connection timed out', {stage: 'ws', action: 'connect', code: 'WS_CONNECT_TIMEOUT'}, {kind: 'timeout', timeoutMs: wsConnectTimeoutMs}, connectStartedAt)), wsConnectTimeoutMs);
+      const timer = setTimeout(() => settle(stageError('Inspector WebSocket connection timed out', {stage: 'ws', action: 'connect', code: 'WS_CONNECT_TIMEOUT'}, {kind: 'timeout', timeoutMs: socketTimeoutMs}, connectStartedAt)), socketTimeoutMs);
       ws.onopen = () => {
         socketOpen = true;
         settle();
@@ -266,12 +301,13 @@ export async function withBoss(callback) {
       const startedAt = Date.now();
       const stage = diagnostic.stage ?? 'cdp';
       const action = diagnostic.action ?? method;
+      const timeoutMs = Number.isFinite(diagnostic.timeoutMs) ? Math.max(1, Math.min(requestTimeoutMs, diagnostic.timeoutMs)) : requestTimeoutMs;
       const timer = setTimeout(() => {
         if (!pending.delete(requestId)) return;
         reject(stageError('Inspector CDP request timed out; no automatic mutation retry', {
           stage, action, requestId, code: 'CDP_REQUEST_TIMEOUT',
-        }, {kind: 'timeout', timeoutMs: cdpRequestTimeoutMs}, startedAt));
-      }, cdpRequestTimeoutMs);
+        }, {kind: 'timeout', timeoutMs}, startedAt));
+      }, timeoutMs);
       pending.set(requestId, {resolve, reject, timer, requestId, stage, action, startedAt});
       try {
         ws.send(JSON.stringify({id: requestId, method, params}));
@@ -372,10 +408,13 @@ export async function withBoss(callback) {
 
     if (started && identityVerified && ws && socketOpen) {
       await recordCleanup('close-inspector', async () => {
-        await evaluate(`(()=>{setTimeout(()=>process.mainModule.require('inspector').close(),100);return true})()`, {stage: 'cleanup', action: 'close-inspector'});
+        const deadline = purpose === 'bounded_readonly_observer' ? Date.now() + 2000 : null;
+        await evaluate(`(()=>{setTimeout(()=>process.mainModule.require('inspector').close(),100);return true})()`, {stage: 'cleanup', action: 'close-inspector', ...(deadline === null ? {} : {timeoutMs: deadline - Date.now()})});
         for (let index = 0; index < 20; index++) {
-          await sleep(100);
-          if (!(await targets()).length) return;
+          if (deadline !== null && Date.now() >= deadline) break;
+          await sleep(deadline === null ? 100 : Math.min(100, Math.max(0, deadline - Date.now())));
+          if (deadline !== null && Date.now() >= deadline) break;
+          if (!(await targets(deadline === null ? {} : {deadline})).length) return;
         }
         throw stageError('Inspector cleanup not confirmed; BOSS was left running', {stage: 'cleanup', action: 'confirm-inspector-closed', code: 'CLEANUP_NOT_CONFIRMED'});
       });

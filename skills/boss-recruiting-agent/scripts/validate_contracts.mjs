@@ -46,6 +46,10 @@ if (type === 'job') {
     seen.add(candidate.uid);
   }
 } else if (type === 'approval') {
+  if (value.contractVersion !== undefined) {
+    assert(value.contractVersion === 2, 'unsupported approval contractVersion');
+    assert(typeof value.jobId === 'string' && value.jobId.trim(), 'version 2 approval must bind jobId');
+  }
   assert(value.approved === true, 'approval.approved must be true');
   assert(/^[a-f0-9]{64}$/.test(value.expectedHistorySha256 ?? ''), 'expectedHistorySha256 must bind the reviewed conversation');
   assert(Number.isSafeInteger(value.recipient?.uid) && value.recipient.uid > 0, 'recipient uid is invalid');

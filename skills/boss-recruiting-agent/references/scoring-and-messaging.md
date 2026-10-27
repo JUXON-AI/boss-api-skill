@@ -10,7 +10,7 @@ Use the current fresh history snapshot plus explicitly recorded public GitHub ob
 2. If a legacy snapshot includes `derived.latest_inbound_text` or `derived.latest_outbound_text`, they are convenience projections only. New technical history snapshots may omit `derived`; inspect the original messages and timestamps.
 3. A BOSS `body.resume` object is a profile summary card. It is not an attachment PDF.
 4. Distinguish an attachment request, a received attachment link, a downloaded PDF and parsed text. Only report the stage actually observed in history or download evidence.
-5. `body.resume.city` is the candidate's present/profile location. It does not prove willingness or refusal to work elsewhere.
+5. In the verified current client, `body.resume.city` is displayed as expected job city (期望城市). It is not current residence and does not prove willingness or refusal to work elsewhere. Current residence needs separate explicit evidence; a user-authorized school-city default must be visibly labelled.
 6. `body.resume.salary` is the candidate's salary field; `body.resume.jobSalary` is the posted job salary. Do not merge their semantics.
 
 ## Dimension anchors
@@ -29,6 +29,8 @@ Use a 0–100 score for dimensions with enough evidence:
 If a dimension has no usable evidence, use `null`. Never replace missing evidence with zero.
 
 Cost gate: after one review of the existing compact resume/greeting packet, if the reviewed `abilityBaseScore` is still null (“待了解”), skip that candidate for this batch. Do not spend another enrichment pass, delegate deeper research or send capability questions to fill an entirely unknown base. Keep the null score and source, with a local skip reason; this is neither a screening pass nor an automatic rejection notification. A known numeric base with some null dimensions remains eligible for ordinary review. Competition bonuses cannot rescue an unknown base. Apply this gate to the reviewed scoring result, not the batch collector's lexical `analysis.abilityScore`, which is deliberately null for every unreviewed record.
+
+A newly received, authorized candidate-provided resume is new existing evidence, not an external enrichment pass. Read that available document and include it in the one compact review before applying the null-base skip; an earlier generic greeting does not authorize ignoring a later resume. Receiving a document does not prove capability, a real-condition acceptance, or independent verification.
 
 Default dimensions and weights:
 
@@ -104,7 +106,7 @@ Use these enum values:
 - `ready_for_contact`: enough role evidence to ask the next high-value questions; no confirmed hard conflict.
 - `needs_more_info`: evidence coverage is below 60%, core skills or project ownership is unresolved, or a critical logistics answer is pending.
 - `awaiting_candidate_reply`: a question has been sent and the next action is to wait.
-- `ai_screened_pass`: after no more than two substantive rounds, evidence coverage is at least 70%, `abilityBaseScore >= 60`, `finalSignalScore >= 65`, logistics do not conflict, and a HR handoff summary is ready. The base gate is mandatory, so proof evidence cannot convert an unknown or weak ability base into a pass.
+- `ai_screened_pass`: after no more than two substantive rounds, evidence coverage is at least 70%, `abilityBaseScore >= 60`, `finalSignalScore >= 65`, all required job conditions and hard requirements are explicitly supported, and a HR handoff summary is ready. Unknown logistics are not a pass merely because no conflict was stated. The base gate is mandatory, so proof evidence cannot convert an unknown or weak ability base into a pass.
 - `talent_pool_candidate`: `abilityBaseScore >= 65` and `finalSignalScore >= 70`, but current-role timing, logistics, or scope does not fit, or the candidate may fit another role.
 - `current_role_mismatch`: explicit hard conflict for the current job.
 - `stop_contact`: candidate declined or requested no further contact.
@@ -125,23 +127,21 @@ For internships: confirm daily pay, location, days per week, minimum internship 
 
 For full-time roles: confirm monthly salary expectations, current employment and handover period, location/work mode, role direction or level and earliest start date. Ask about another offer deadline only when relevant. Do not repeat answered questions; confirm salary structures and benefits with HR rather than inventing them.
 
-After round 2, generate the HR handoff summary. Do not continue technical interviewing over BOSS chat.
+After round 2, stop substantive interviewing. Generate a real HR handoff only when admission gates pass; otherwise preserve a sourced hold and unknowns. Policy replies and handoffs retain the actual round and cannot hide a third substantive question. See [continuous-followup.md](continuous-followup.md) for recurring-task evidence and recovery rules.
 
 ## Approved status language
 
-Before an internal handoff:
-
-> 好的，了解了，我把你的能力情况和到岗安排整理一下，后续有进展会在 BOSS 上联系你。
+Before an internal handoff, send only a necessary question or a direct response to an actual candidate question. Do not add a mechanical “好的，了解了” or an empty preparation/confirmation message merely to announce that information will be organized.
 
 After a real Base/HR handoff exists:
 
 > 你的相关信息已转交给人事 HR 进一步处理，有消息会第一时间在 BOSS 上联系你。
 
-If an actual incoming resume email in the recruiting team's Feishu mailbox has been matched to this BOSS candidate and the current job, replace the closing sentence with:
+Even when a matched resume email is received in the recruiting team's Feishu mailbox, retain the BOSS-only closing sentence:
 
-> 有消息会第一时间通过 BOSS 或你发送简历时使用的邮箱联系你。
+> 有消息会第一时间在 BOSS 上联系你。
 
-Use the sender address of that matched resume email. A resume contact address, online profile or BOSS attachment alone does not establish this email channel. Keep the mail-message reference, identity match and job match in private local evidence only. If no matching mail is confirmed, retain the BOSS-only wording. Read and send mail under the `lark-mail` skill; this wording does not authorize sending email or prove mailbox access. Do not guarantee an email or describe an internal handoff before it actually succeeds.
+Email is used only for resume intake and storage; candidate communication remains on BOSS. A BOSS system-forward address is not the candidate's address, and a contact address inside a resume does not establish an email channel. Keep mail-message, identity and job evidence in protected outputs. Do not send/reply/forward mail or describe an internal handoff before it actually succeeds.
 
 Use the more explicit HR-handoff wording only after the actual handoff is verified, including a Base record readback when the workflow uses Base. “第一时间” refers to providing an update once there is news; it does not imply an interview, approval or a specific turnaround time. Do not send a second closing message merely to replace an earlier closing that has already been sent.
 

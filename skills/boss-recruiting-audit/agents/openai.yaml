@@ -1,0 +1,4 @@
+interface:
+  display_name: "招聘审计与接续"
+  short_description: "对账招聘回执及真实动作增量，保护暂停与历史证据并验收可接续状态"
+  default_prompt: "请使用 $boss-recruiting-audit，核验当前招聘批次的真实增量、失败和暂停，仅在证据充分时更新可接续状态。"

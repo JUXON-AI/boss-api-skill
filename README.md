@@ -64,7 +64,47 @@ node --test scripts/runtime.test.mjs
 
 Windows 使用 PowerShell 与本机 Node.js，无需 WSL、`ps` 或 Unix 信号。`BOSS_APP_MAIN` 可显式指定安装的 exe；通常直接使用 CIM 返回的唯一主进程路径。敏感输出在新建子目录中保存：Windows 使用仅当前用户与 SYSTEM 可访问的受保护 ACL，已有目录权限过宽则拒绝写入；macOS 保持 0600 文件模式。全部离线测试：`node --test scripts/*.test.mjs`。
 
-上述安装的是技术skill。若需要招聘流程，将 `skills/boss-recruiting-agent` 也安装到同级skill目录；已有同名skill时先检查本地修改。默认Codex目录下，尚未安装招聘skill时可执行：
+上述安装的是技术skill。招聘流程可使用下面的9模块skills包；`skills/boss-recruiting-agent` 保留项目实现、契约、脚本和兼容入口。
+
+### 安装招聘skills包
+
+分发清单见 [recruiting-skills.package.json](recruiting-skills.package.json)，总入口为 [$boss-recruiting-followup](skills/boss-recruiting-followup/SKILL.md)。将清单列出的9个目录安装为同级skills，保留共享引用；首次安装的Windows示例：
+
+```powershell
+$repo = "$env:USERPROFILE\.codex\skills\boss-desktop-api"
+$skillRoot = "$env:USERPROFILE\.codex\skills"
+$package = Get-Content -LiteralPath "$repo\recruiting-skills.package.json" -Raw | ConvertFrom-Json
+foreach ($name in $package.skills) {
+    $destination = Join-Path $skillRoot $name
+    if (Test-Path -LiteralPath $destination) { throw "已安装 $name，请先核对本地修改" }
+}
+foreach ($name in $package.skills) {
+    Copy-Item -LiteralPath "$repo\skills\$name" -Destination $skillRoot -Recurse
+}
+```
+
+| Skill | 职责 |
+| --- | --- |
+| [boss-recruiting-followup](skills/boss-recruiting-followup/SKILL.md) | 持续跟进与按需路由 |
+| [boss-recruiting-collect](skills/boss-recruiting-collect/SKILL.md) | 新招呼、新回复、真正漏回的只读采集 |
+| [boss-recruiting-review](skills/boss-recruiting-review/SKILL.md) | 单人证据、评分及草稿复核 |
+| [boss-recruiting-message](skills/boss-recruiting-message/SKILL.md) | 自然回复、单次发送与独立读回 |
+| [boss-recruiting-talent](skills/boss-recruiting-talent/SKILL.md) | 达标入库和HR交接 |
+| [boss-recruiting-profile](skills/boss-recruiting-profile/SKILL.md) | 有来源的年龄、性别、院校与现居地 |
+| [boss-recruiting-resume](skills/boss-recruiting-resume/SKILL.md) | 主动附件、收件PDF与线上简历归档 |
+| [boss-recruiting-push](skills/boss-recruiting-push/SKILL.md) | 飞书机器人人才推荐与防重 |
+| [boss-recruiting-audit](skills/boss-recruiting-audit/SKILL.md) | 异常对账、暂停和增量验收 |
+
+使用示例：`请使用 $boss-recruiting-followup，按本项目私有任务入口继续已授权岗位。` 单项维护可直接调用对应模块。包内不含实际岗位配置、候选人资料、凭据或实时任务状态，也不会自动注册工具；实现依赖按 [工作区映射](skills/boss-recruiting-followup/references/implementation-map.md) 从本仓库和已部署CLI取得。
+
+部署依赖按实际使用的模块准备：
+
+- 客户端读取和消息操作需要本仓库技术skill、Node.js及已经验证的本地BOSS客户端SDK/桥接；平台支持范围见本文的平台与验证章节，不能把Windows接续经验视为其他平台已验证。
+- 评分、账本、流水线和提案检查依赖本仓库 `scripts/` 与 `skills/boss-recruiting-agent/scripts/`，保留仓库布局。9个模块只携带操作规则，不独立实现这些接口。
+- 飞书入库、资料和附件维护另需当前用户已授权的lark-cli、对应lark skills、真实表结构及工作区配置；邮箱读取和机器人推送仅在用户启用对应模块后需要。
+- 持续轮询需要私有任务入口、当前授权与已验收的collector/runner；缺少实现或接口未验证时停在对应阶段，不能凭安装skills直接发送、建人才行或推群。
+
+若需兼容原招聘入口，将 `skills/boss-recruiting-agent` 也安装到同级skill目录；已有同名skill时先检查本地修改。默认Codex目录下，尚未安装招聘skill时可执行：
 
 ```sh
 cp -R ~/.codex/skills/boss-desktop-api/skills/boss-recruiting-agent ~/.codex/skills/boss-recruiting-agent
@@ -91,3 +131,8 @@ macOS 的既有验证记录保持独立，见 [验证记录](references/verifica
 招聘初筛、HR话术和人才库规则由仓库内的 `boss-recruiting-agent` skill 负责；接口操作统一复用根目录技术skill。业务skill没有额外的发送实现；授权样例默认未批准。飞书地址与真实岗位配置从使用者的工作区取得，不在仓库中发布。
 
 先批量读取、再本地复核和逐个沟通：见 [批量采集说明](references/batch-reading.md)。已实际完成20人在线结构化摘要采集；全文未验证。采集脚本不发送消息，沟通仍用单人发送入口。
+# 招聘性能模块
+
+持续招聘的逐人流水线、自动提案校验及只读增量观察见[性能接续](skills/boss-recruiting-agent/references/performance.md)。默认4名离线单人复核，主代理逐个验收，所有真实操作仍串行且走原统一sender。
+
+只读observer的maxMs为请求之间的合作lease（默认5秒），不声称取消远端已开始的读取；单次CDP另有2秒上限，关闭自建Inspector的cleanup使用总计2秒绝对deadline。前台只等活跃且有明确tag的观察连接，不自动删除未知/死PID锁或重试发送。完整history超出已验证范围则记录待核覆盖缺口，不猜分页。

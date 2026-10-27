@@ -12,6 +12,8 @@
     "expectedHistorySha256"
   ],
   "properties": {
+    "contractVersion": {"const": 2},
+    "jobId": {"type": "string", "minLength": 1},
     "recipient": {
       "type": "object",
       "additionalProperties": false,
@@ -68,5 +70,6 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     }
-  }
+  },
+  "allOf": [{"if": {"required": ["contractVersion"]}, "then": {"required": ["jobId"]}}]
 }

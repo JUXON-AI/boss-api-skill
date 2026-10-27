@@ -26,7 +26,7 @@
 ## 调用
 
 ```sh
-node <skill>/scripts/boss.mjs send --approval outputs/boss/approval.json --attempt outputs/boss/send-attempt.json --output outputs/boss/send-result.json
+node <skill>/scripts/boss.mjs send --approval outputs/boss/approval.json --attempt outputs/boss/send-attempt.json --output outputs/boss/send-result.json --job-id <精确岗位ID>
 ```
 
 1. 校验单人授权、非空正文、原文哈希和会话指纹。指纹统一使用 runtime 的 `historyFingerprint(messages)`；只排除每条消息顶层会随读取刷新的 `securityId`，正文、双方身份、mid、时间及其余字段仍参与哈希，正文内部同名字段也不排除。history 命令已经返回该指纹，不再手工对整段原始 JSON 求哈希。旧的原始 JSON 指纹在不匹配时拒绝发送，须重新审阅。

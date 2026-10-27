@@ -1,0 +1,4 @@
+interface:
+  display_name: "简历接收与归档"
+  short_description: "核验主动简历接收、收件PDF及线上正文，读取本人材料并归档可查看附件"
+  default_prompt: "请使用 $boss-recruiting-resume，接续已授权主动简历的接收、正文读取和归档，核验身份绑定及人才表附件可查看。"
