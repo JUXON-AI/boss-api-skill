@@ -18,7 +18,7 @@ description: 将正式通过筛选且条件明确的候选人写入飞书人才�
 ## 执行闭环
 
 1. 核配置指定的已授权用户身份，不以机器人身份代替表权限。读取fresh schema，按UID+job与姓名精确查重，冲突先只读核证，不错误绑定。
-2. 调当前已验收字段构造器，保留真实初筛依据/未知政策，状态为HR待复核；dry-run后真实create_records/update_records，CLI用当前支持参数与工作区相对@JSON。
+2. 调当前已验收字段构造器，保留真实初筛依据/未知政策，状态为HR待复核；新入库按[学历字段与颜色](../boss-recruiting-profile/references/education-ranking.md)传入配置的educationPolicyFile，填写本人明确学历并继承单选选项颜色，未知留空记原因，不写旧院校评分。dry-run后真实create_records/update_records，CLI用当前支持参数与工作区相对@JSON。
 3. 逐字段读回实际行，字段数随fresh schema，不固化旧15列。必填字段有真实来源，未知保留空及原因，不把“回读全列”当“全列必须猜填”。实际服务ok=false不能当成功。
 4. Base核验成功后，按[message](../boss-recruiting-message/SKILL.md)独立发送自然交接，可按语境参考“你的信息已经提交到公司人才库了，后续HR会评估，有消息我会在BOSS上联系你。”不承诺面试或录用。
 5. 交接独立唯一新增读回成功后，按真实消息时间更新最后联系并再次逐字段读回，记录bossHandoffSent。没有成功发送不伪造时间/回执；新入站或发送异常停止相应阶段留证。
