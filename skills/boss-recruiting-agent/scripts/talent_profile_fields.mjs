@@ -141,12 +141,13 @@ export function buildTalentCreateValues({values, locationPolicyFile, currentResi
     assert.equal(education.conflicts.length, 0, 'confirmed education conflicts with create values');
   }
   const enriched = JSON.parse(JSON.stringify({...values, ...profile.patch, ...location.patch, ...education?.patch}));
+  delete enriched['院校评分'];
   return {
     values: enriched,
     profile,
     location,
     ...(education ? {education} : {}),
     writtenFields: Object.keys(enriched).length,
-    omittedFields: ['年龄', '性别', '院校', '现居地', '院校评分', '附件', ...(educationPolicyFile ? ['学历'] : [])].filter(name => !Object.hasOwn(enriched, name)),
+    omittedFields: ['年龄', '性别', '院校', '现居地', '附件', ...(educationPolicyFile ? ['学历'] : [])].filter(name => !Object.hasOwn(enriched, name)),
   };
 }

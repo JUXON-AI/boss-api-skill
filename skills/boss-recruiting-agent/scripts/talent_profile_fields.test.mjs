@@ -48,11 +48,16 @@ test('create payload hook fills confirmed fields and preserves all unrelated val
   const f=fixture(t);const values={'姓名':'Sample A','院校':'示例大学','能力评分':76,'HR复核状态':'待复核','最终联系时间':'2026-10-01 10:00:00'};
   const result=buildTalentCreateValues({...f,values});
   assert.deepEqual(result.values,{...values,'年龄':23,'性别':'女'});
-  assert.equal(result.writtenFields,7);assert.deepEqual(result.omittedFields,['现居地','院校评分','附件']);
+  assert.equal(result.writtenFields,7);assert.deepEqual(result.omittedFields,['现居地','附件']);
   assert.equal(Object.hasOwn(values,'年龄'),false);
   assert.throws(()=>buildTalentCreateValues({...f,values:{...values,'院校':'另一示例大学'}}),/conflict/);
   const missing=buildTalentCreateValues({...f,values:{...values,'院校评分':undefined,'附件':undefined}});
-  assert.equal(missing.writtenFields,7);assert.deepEqual(missing.omittedFields,['现居地','院校评分','附件']);
+  assert.equal(missing.writtenFields,7);assert.deepEqual(missing.omittedFields,['现居地','附件']);
+  const legacyValues={...values,'院校评分':91};
+  const migrated=buildTalentCreateValues({...f,values:legacyValues});
+  assert.equal(Object.hasOwn(migrated.values,'院校评分'),false);
+  assert.equal(migrated.values['能力评分'],76);
+  assert.equal(legacyValues['院校评分'],91);
 });
 
 test('unsafe numeric contact IDs cannot pass the I/O identity check after JSON rounding', t => {

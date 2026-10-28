@@ -43,7 +43,7 @@ description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮�
 7. 评分必须调用 deterministic scorer 并记录 `abilityBaseScore`、`proofBonus`、`finalSignalScore` 和覆盖率，缺证据用 null。先验证evaluation，再生成候选人记录并通过 `validate_contracts.mjs record`、`candidate_ledger.mjs upsert` 和 `show` 回读；批量结束再运行 `verify` 与 `index`。阈值仅是初筛建议，不能自动录用或拒绝。
 8. 核对当前用户授权是否已覆盖本次范围与回复流程；已授权持续跟进时不逐人重复请示。按技术skill创建本条消息的approval，必须包含本次history的 `expectedHistorySha256`。授权不足时才补充确认。验证：`node <skill>/scripts/validate_contracts.mjs approval <approval.json>`。
 9. 通过统一技术入口发送：`node <api-skill>/scripts/boss.mjs send --approval <approval.json> --attempt <新文件> --output <新文件> --job-id <精确岗位ID>`。岗位必须显式绑定；新流水线的v2审批另含jobId并与命令一致。历史不完整或结果不明时停止；只报告历史写入，不凭此声称送达/已读。
-10. 达到初筛门槛后，读 `references/feishu-talent-base.md`，核对当前表字段、去重并写入飞书。创建payload必须调用 `scripts/talent_profile_fields.mjs` 的 `buildTalentCreateValues`：只从绑定本人UID/姓名/岗位及真实文件SHA的原始资料补年龄、性别、院校；缺失不猜，数值性别须有客户端映射证据。现居地优先本人明确原话；用户授权学校所在地默认时，传入工作区 `profile_fields.current_location.policy`，按核验学校地理来源填值并注明“学校所在地默认”。期望城市、工作城市、籍贯不充当现居地；校区不明或来源冲突留空待核实。字段只作事实记录，不参与能力、筛选或院校档次推断。院校评分没有明确口径则不填；报告实际写入字段与未知原因，按当前schema逐字段读回，不能把核验列数称作填满列数。实际交接成功再同步候选人。HR后续决定面试、暂缓或结束。
+10. 达到初筛门槛后，读 `references/feishu-talent-base.md`，核对当前表字段、去重并写入飞书。创建payload必须调用 `scripts/talent_profile_fields.mjs` 的 `buildTalentCreateValues`：只从绑定本人UID/姓名/岗位及真实文件SHA的原始资料补年龄、性别、院校；缺失不猜，数值性别须有客户端映射证据。现居地优先本人明确原话；用户授权学校所在地默认时，传入工作区 `profile_fields.current_location.policy`，按核验学校地理来源填值并注明“学校所在地默认”。期望城市、工作城市、籍贯不充当现居地；校区不明或来源冲突留空待核实。字段只作事实记录，不参与能力、筛选或院校档次推断。学历仅按本人明确资料填写；院校排名展示在院校名称后，不再创建或写入旧院校评分列；报告实际写入字段与未知原因，按当前schema逐字段读回，不能把核验列数称作填满列数。实际交接成功再同步候选人。HR后续决定面试、暂缓或结束。
 
 ## 说话方式
 

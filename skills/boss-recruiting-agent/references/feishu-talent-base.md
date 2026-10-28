@@ -22,12 +22,12 @@ The current Base should contain at least:
 - 院校
 - 学历
 - 现居地
-- 院校评分
 - 能力评分
 - 岗位适应评分
 - 最终联系时间
 - 最快到岗时间
 - 附件
+- 简历附件
 - AI初筛结论
 - 初筛依据
 - HR复核状态
@@ -55,7 +55,7 @@ const enriched = buildTalentCreateValues({
 - Age: only the explicit age field, as a number or numeric string. No birth-year arithmetic or automatic increment of cached age; the saved source date remains part of its provenance.
 - Gender: accept explicit labels. Numeric codes require a mapping bound to actual client source bytes and its exact enum expression. Never assume 0/1/2 meanings or treat numeric zero as missing. Mapping paths belong in workspace `profile_fields` config; missing mapping means omit and report, never guess.
 - School: explicit school/schoolName or one unambiguous education (`type=2`) institution. Conflicting institutions, identity, timestamps or actual nonempty Base values require review; do not overwrite. A placeholder profile name may be accepted only with a registered exact-source alias and independent same-snapshot contact UID/name/job evidence.
-- School rating: preserve existing values. Without a user-approved rubric, omit `院校评分`; a school name alone does not authorize a tier or numerical score.
+- Education: use the single `学历` column for confirmed degree information. The former `院校评分` column is retired; do not recreate it or infer degrees from school tiers. A user-requested column merge may preserve existing explicit degree labels with their original-cell provenance.
 - Missing or conflicting evidence: omit the field with its reason. Never create a value merely to make the field count complete. Fill Base null/empty cells and gender/school `未知` placeholders; preserve confirmed nonempty values and halt conflicting writes.
 
 ### Current residence
