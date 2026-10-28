@@ -63,3 +63,17 @@ test('unsafe numeric contact IDs cannot pass the I/O identity check after JSON r
   fs.writeFileSync(f.source,JSON.stringify(f.snapshot));f.sourceSha256=hash(fs.readFileSync(f.source));
   assert.throws(()=>readVerifiedProfileFields(f),/UID mismatch/);
 });
+
+test('create hook fills explicit education and official rank with verified original bytes', t => {
+  const f=fixture(t);f.snapshot.history.original_order_redacted[0].body.resume.education='硕士';
+  fs.writeFileSync(f.source,JSON.stringify(f.snapshot));f.sourceSha256=hash(fs.readFileSync(f.source));
+  const rawFile=path.join(f.dir,'official.json');fs.writeFileSync(rawFile,JSON.stringify({code:200,data:{rankings:[{univNameCn:'示例大学',ranking:'18'}]}}));
+  const rankingFile=path.join(f.dir,'ranking.json');fs.writeFileSync(rankingFile,JSON.stringify({year:2026,category:'中国大学排名（主榜）',sourceUrl:'https://www.shanghairanking.cn/rankings/bcur/2026',sourceSha256:hash(fs.readFileSync(rawFile)),entries:[{name:'示例大学',rank:18}]}));
+  const educationPolicyFile=path.join(f.dir,'education-policy.json');fs.writeFileSync(educationPolicyFile,JSON.stringify({year:2026,catalogs:[{file:rankingFile,sha256:hash(fs.readFileSync(rankingFile)),rawFile}]}));
+  const values={'姓名':'Sample A','院校':'示例大学','能力评分':76,'HR复核状态':'待复核'};
+  const result=buildTalentCreateValues({...f,values,educationPolicyFile});
+  assert.equal(result.values['学历'],'硕士');assert.equal(result.values['院校'],'示例大学（18）');
+  assert.equal(result.values['能力评分'],76);assert.equal(result.values['HR复核状态'],'待复核');
+  fs.appendFileSync(rawFile,' ');
+  assert.throws(()=>buildTalentCreateValues({...f,values,educationPolicyFile}),/source bytes changed/);
+});

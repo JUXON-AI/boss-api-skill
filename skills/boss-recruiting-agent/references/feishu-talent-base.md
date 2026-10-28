@@ -20,6 +20,7 @@ The current Base should contain at least:
 - 年龄
 - 性别
 - 院校
+- 学历
 - 现居地
 - 院校评分
 - 能力评分
@@ -43,11 +44,13 @@ Use `scripts/talent_profile_fields.mjs` at the file-I/O boundary. It verifies ac
 const enriched = buildTalentCreateValues({
   candidate: {uid, name, jobId}, values,
   source: originalSnapshotPath, sourceSha256: actualSnapshotByteSha256,
-  genderMappingFile, aliasesFile, locationPolicyFile,
+  genderMappingFile, aliasesFile, locationPolicyFile, educationPolicyFile,
 });
 // Save enriched.profile as evidence; use enriched.values in create_records
 // BEFORE the real payload SHA, dry-run, write and independent readback.
 ```
+
+学历与排名遵循[资料模块的来源规则](../../boss-recruiting-profile/references/education-ranking.md)。`educationPolicyFile`引用已核验官方2026排名catalog及原始响应的实际字节SHA；构造器核本人明确学历、精确学校和原始排名响应，写“学历”及“学校（排名）”。无法匹配的学校保留原名，不伪造排名。分类榜保留类别，官方排名区间不改精确名次。新字段增加后按fresh schema逐字段读回，不能继续硬编码15或17个字段。
 
 - Age: only the explicit age field, as a number or numeric string. No birth-year arithmetic or automatic increment of cached age; the saved source date remains part of its provenance.
 - Gender: accept explicit labels. Numeric codes require a mapping bound to actual client source bytes and its exact enum expression. Never assume 0/1/2 meanings or treat numeric zero as missing. Mapping paths belong in workspace `profile_fields` config; missing mapping means omit and report, never guess.

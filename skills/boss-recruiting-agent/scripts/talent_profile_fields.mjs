@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import {extractProfileFields, planProfileFieldPatch} from './profile_fields.mjs';
 import {buildTalentLocationPatch} from './talent_location_fields.mjs';
+import {extractEducation, buildEducationRankPatch} from './talent_education_fields.mjs';
 
 const FIELD_NAMES = Object.freeze({age: '年龄', gender: '性别', school: '院校'});
 const GENDER_EXPRESSION = '1===this.item.gender?"男":0===this.item.gender?"女":""';
@@ -110,7 +111,7 @@ export function buildTalentProfilePatch({candidate, currentValues = {}, ...sourc
 }
 
 /** Shared create-payload hook. Admission and API execution remain caller-owned. */
-export function buildTalentCreateValues({values, locationPolicyFile, currentResidence, ...sourceOptions}) {
+export function buildTalentCreateValues({values, locationPolicyFile, currentResidence, educationPolicyFile, ...sourceOptions}) {
   assert.ok(values && typeof values === 'object' && !Array.isArray(values));
   const profile = buildTalentProfilePatch({...sourceOptions, currentValues: values});
   assert.equal(profile.conflicts.length, 0, 'confirmed profile fields conflict with create values');
@@ -118,12 +119,34 @@ export function buildTalentCreateValues({values, locationPolicyFile, currentResi
   const location = buildTalentLocationPatch({...sourceOptions, locationPolicyFile, currentResidence,
     school: profile.patch['院校'] ?? values['院校'], currentValue: values['现居地']});
   assert.notEqual(location.status, 'conflict', 'current location conflicts with create values');
-  const enriched = JSON.parse(JSON.stringify({...values, ...profile.patch, ...location.patch}));
+  let education;
+  if (educationPolicyFile) {
+    const policy = JSON.parse(fs.readFileSync(educationPolicyFile, 'utf8'));
+    assert.equal(policy.year, 2026, 'education ranking policy year mismatch');
+    const snapshot = readBoundJson(sourceOptions.source, sourceOptions.sourceSha256);
+    const input = {...sourceOptions, snapshot, identityAlias: profile.identityAliasEvidence};
+    const extracted = extractEducation(input);
+    const rankings = policy.catalogs.map(item => {
+      const ranking = readBoundJson(item.file, item.sha256);
+      const raw = readBoundJson(item.rawFile, ranking.sourceSha256);
+      assert.equal(raw.code, 200);
+      assert.deepEqual(ranking.entries, raw.data.rankings.map(row => ({name: row.univNameCn,
+        rank: /^[1-9]\d*$/.test(row.ranking) ? Number(row.ranking) : row.ranking})),
+      'ranking catalog differs from original official source');
+      return ranking;
+    });
+    const ranking = rankings.find(r => r.entries.some(e => e.name === extracted.values.school)) ?? rankings[0];
+    assert.ok(ranking, 'verified ranking catalog required');
+    education = buildEducationRankPatch({...input, currentValues: {...values, ...profile.patch}, ranking});
+    assert.equal(education.conflicts.length, 0, 'confirmed education conflicts with create values');
+  }
+  const enriched = JSON.parse(JSON.stringify({...values, ...profile.patch, ...location.patch, ...education?.patch}));
   return {
     values: enriched,
     profile,
     location,
+    ...(education ? {education} : {}),
     writtenFields: Object.keys(enriched).length,
-    omittedFields: ['年龄', '性别', '院校', '现居地', '院校评分', '附件'].filter(name => !Object.hasOwn(enriched, name)),
+    omittedFields: ['年龄', '性别', '院校', '现居地', '院校评分', '附件', ...(educationPolicyFile ? ['学历'] : [])].filter(name => !Object.hasOwn(enriched, name)),
   };
 }
