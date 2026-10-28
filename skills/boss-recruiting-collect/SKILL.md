@@ -21,6 +21,7 @@ description: 只读采集已授权BOSS岗位的新招呼、新回复及真正漏
 
 - 按job+UID+mid与验收回执排除已处理文本。communication.no_reply_required、state marker或已审hold回执只能过滤其精确mid，未来新mid不能按UID跳过；新pending与失效marker不得共存，交由正式CAS阶段修正。
 - 已问待答、纯感谢/确认及旧交接不是漏回；已读不构成催促理由。平台附件/邀请/撤回事件单列，既不当候选条件接受，也不操作接收/拒绝/下载。
+- 未读角标、已读取history、已审阅及已回复是不同状态。检查未读时，按真实发送回执及精确已审mid区分已回复遗留未读、交流后新增、未联系与已审无须回复；缓存覆盖与远端分页覆盖分开报告。正常已读回执及状态核验见[未读状态](../boss-recruiting-followup/references/unread-state.md)，不批量清空待处理项。
 - 只对完整成功的本人快照判断有无新增。部分失败仅补失败和未尝试UID，保留各批historySources并组合验收，不重采本轮已成功范围。
 - 旧scope外历史会话先核当前岗位及范围授权，再登记独立恢复来源；不因“不在旧125”直接丢弃，也不自动视为授权。原已收到未读简历交[resume](../boss-recruiting-resume/SKILL.md)，不能只看聊天mid而遗漏正文。
 

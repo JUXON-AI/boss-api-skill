@@ -30,6 +30,7 @@ description: 执行已授权且主验通过的BOSS筛问、政策答复或入库
 2. 新鲜完整history与已审批证据一致，做双重严格发前校验；出现新入站先停本条重审，不把旧审批套到新事实。
 3. 独占attempt，统一scripts/boss.mjs send只调用一次，保存approval/pre-send/SDK/result实际证据。不换入口或循环调用sender。
 4. 独立完整回读，验证只有一条符合正文SHA的新增出站、无其他意外出站；CAS登记真实mid、history、轮次/pending并回读。SDK成功、历史写入、送达和已读分别表述。
+5. 对已完整读取且已回复的入站消息，按[未读状态](../boss-recruiting-followup/references/unread-state.md)发送正常客户端已读回执并独立检查未读数。读取history或发出文字不等于完成此步；新入站或尚未处理的消息保留。已读回执失败单列，不改变真实发送结果，也不能因此重发文字。
 
 不同目的确需两条时，各自审批/SHA/attempt/单次SDK/独立回读/CAS。第二条必须第一条确实成功后刷新本人完整history、绑定新CAS；不共用审批，不添无内容消息。入库后交接成功交[talent](../boss-recruiting-talent/SKILL.md)更新最后联系并再读回，才可进入已授权群推送。
 
