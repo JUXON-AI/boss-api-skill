@@ -84,10 +84,37 @@ export function activateInspector(bossPid, platform = process.platform) {
     {windowsHide: true, timeout: 8000, stdio: 'pipe'});
 }
 
+export function parseNativeTcpListeners(text, port) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid listener port');
+  const rows = [];
+  for (const line of text.split(/\r?\n/)) {
+    const parts = line.trim().split(/\s+/);
+    if (parts.length !== 5 || parts[0] !== 'TCP' || parts[3] !== 'LISTENING') continue;
+    const endpoint = /^(.*):([0-9]+)$/.exec(parts[1]);
+    if (!endpoint || Number(endpoint[2]) !== port) continue;
+    if (!/^\d+$/.test(parts[4])) throw new Error('Invalid native listener PID');
+    const pid = Number(parts[4]);
+    if (!Number.isSafeInteger(pid)) throw new Error('Invalid native listener PID');
+    rows.push({LocalAddress: endpoint[1], OwningProcess: pid});
+  }
+  return rows;
+}
+
 export function verifyWindowsListener(port, bossPid) {
-  const raw = powershell(`@(Get-NetTCPConnection -State Listen -LocalPort $data.port -ErrorAction SilentlyContinue |
-    Select-Object LocalAddress,OwningProcess) | ConvertTo-Json -Compress`, {port});
-  const parsed = raw ? JSON.parse(raw) : [], rows = Array.isArray(parsed) ? parsed : [parsed];
+  let rows;
+  try {
+    const raw = powershell(`@(Get-NetTCPConnection -State Listen -LocalPort $data.port -ErrorAction SilentlyContinue |
+      Select-Object LocalAddress,OwningProcess) | ConvertTo-Json -Compress`, {port});
+    const parsed = raw ? JSON.parse(raw) : [];
+    rows = Array.isArray(parsed) ? parsed : [parsed];
+  } catch { rows = []; }
+  // Get-NetTCPConnection depends on the same WMI provider as process inventory.
+  // An empty/failed provider query must still prove the identical ownership rule.
+  if (!rows.length) {
+    const raw = execFileSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/netstat.exe'),
+      ['-ano'], {encoding:'utf8',windowsHide:true,timeout:8000,maxBuffer:2*1024*1024,stdio:'pipe'});
+    rows = parseNativeTcpListeners(raw, port);
+  }
   if (rows.length !== 1 || rows[0].LocalAddress !== '127.0.0.1' || rows[0].OwningProcess !== bossPid)
     throw new Error('Inspector listener is not exclusively loopback-owned by the selected BOSS PID');
 }

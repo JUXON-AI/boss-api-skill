@@ -3,10 +3,19 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {archivePath, defaultAppMain, selectWindowsMain, privateDirectory, sameOutputPath} from './platform.mjs';
+import {archivePath, defaultAppMain, selectWindowsMain, privateDirectory, sameOutputPath, parseNativeTcpListeners} from './platform.mjs';
 
 const executable='C:\\Program Files\\boss-zhipin\\boss-zhipin.exe';
 const main={ProcessId:123,ExecutablePath:executable,CommandLine:'"'+executable+'" '};
+
+test('native listener inventory retains exact local port, IPv6 and duplicate ownership evidence',()=>{
+  const text=' TCP 127.0.0.1:9229 0.0.0.0:0 LISTENING 123\n TCP 0.0.0.0:9229 0.0.0.0:0 LISTENING 124\n TCP [::1]:9229 [::]:0 LISTENING 125\n TCP 127.0.0.1:9999 127.0.0.1:9229 ESTABLISHED 123\n UDP 127.0.0.1:9229 *:* 123';
+  assert.deepEqual(parseNativeTcpListeners(text,9229),[{LocalAddress:'127.0.0.1',OwningProcess:123},{LocalAddress:'0.0.0.0',OwningProcess:124},{LocalAddress:'[::1]',OwningProcess:125}]);
+  assert.deepEqual(parseNativeTcpListeners(text,9998),[]);
+  assert.deepEqual(parseNativeTcpListeners('TCP 0.0.0.0:9229 0.0.0.0:0 LISTENING 0',9229),[{LocalAddress:'0.0.0.0',OwningProcess:0}]);
+  assert.throws(()=>parseNativeTcpListeners('TCP 127.0.0.1:9229 0.0.0.0:0 LISTENING unknown',9229),/Invalid native listener PID/);
+  assert.throws(()=>parseNativeTcpListeners(text,0),/Invalid listener port/);
+});
 
 test('CIM selection excludes renderer/crashpad and matches paths case-insensitively',()=>{
   const rows=[main,{...main,ProcessId:124,CommandLine:main.CommandLine+'--type=renderer'},
