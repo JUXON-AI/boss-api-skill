@@ -9,6 +9,8 @@ description: 根据本人完整BOSS历史或身份绑定简历离线复核能力
 
 ## 单人离线委派
 
+当前岗位另按[Go转向与实践信号](../boss-recruiting-followup/references/go-transition.md)记录Go能力与学习意愿。具体实践才是正向能力项，“了解/愿意学”不加分；未经配置不自定数值权重。
+
 按用户指定主要使用JUXON ccs-juxon/deepseek-flash。每名只拿本人材料，不读别人资料、不操作服务、不改正式record。返回独立review、必要evaluation、原话/疑问、facts变更与自然草稿；主代理核原始字节和证据后验收。不可用时如实说明实际分工，不改用DSH或把未复核当通过。
 
 用有界单人流水线，默认4名离线复核，谁先完成谁先主验；同UID各版本串行。已部署proposal_validation时先自动核结构、身份、实际UTF8哈希及真实轮次，再主验语境。自动通过不是发送审批；空执行结果、未知结果或审批后内容变化不得算成功。

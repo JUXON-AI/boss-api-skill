@@ -9,6 +9,8 @@ description: 将正式通过筛选且条件明确的候选人写入飞书人才�
 
 ## 门禁与防重
 
+- 当前岗位后续新入库还须按[Go转向规则](../boss-recruiting-followup/references/go-transition.md)核本人接受Go开发及从零学习安排；已入库记录不追溯重建或补发通知。
+
 - 当前确定性基础/覆盖/信号门槛及岗位硬要求全部通过，必需现实条件明确，正式record校验为ai_screened_pass才允许新增。阈值/地址/预算从当前批准配置读取；有分数不代表入库通过。
 - 已有人才行、hr_review、existing_entry_identity_verified或bossHandoffSent按各自真实证据接续，不重建、不补旧交接。历史既有身份核实不冒称本轮实际入库/发通知。暂停未发项不因已有Base自动恢复。
 - 仅补年龄/现居地交[profile](../boss-recruiting-profile/SKILL.md)，仅挂文件交[resume](../boss-recruiting-resume/SKILL.md)；未达标材料留私有队列，不为挂简历提前建行。
