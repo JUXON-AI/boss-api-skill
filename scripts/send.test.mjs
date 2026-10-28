@@ -152,7 +152,7 @@ test('send selects the exact UID/name/job fixture and confines the SDK call to t
     const historyCalls = report.bridgeCalls.filter(call => call.act === 'zpChatHistoryMsg');
     assert.equal(historyCalls.length, 3);
     assert.deepEqual(historyCalls[0].data, {
-      uid: recipient.uid, securityId: selectedContact.securityId, lastMsgId: 0, count: 30,
+      uid: recipient.uid, securityId: selectedContact.securityId, maxMsgId: 0,
     });
     const sdkCall = report.rendererCalls.find(call => call.expression.includes('window.iBossRoot.chat.sendMessage('));
     assert.ok(sdkCall, 'only the offline fake renderer should receive a send expression');
@@ -267,8 +267,8 @@ test('incomplete history blocks sending before SDK inspection and attempt creati
   const files = createCase({scenario: createScenario({historyResponses: [historyResponse(baseMessages, true)]})});
   try {
     const report = executeSend(files);
-    assert.match(failureOf(report).error, /History completeness is unverified/);
-    assert.equal(report.historyReads, 1);
+    assert.match(failureOf(report).error, /History pagination made no progress/);
+    assert.equal(report.historyReads, 2);
     assert.equal(report.rendererCalls.length, 0);
     assert.equal(report.fakeSendInvocations, 0);
     assert.equal(fs.existsSync(files.attempt), false);
@@ -283,8 +283,8 @@ test('history becoming incomplete on the final read blocks sending even if messa
   ]})});
   try {
     const report = executeSend(files);
-    assert.match(failureOf(report).error, /History completeness changed immediately before send/);
-    assert.equal(report.historyReads, 2);
+    assert.match(failureOf(report).error, /History pagination made no progress/);
+    assert.equal(report.historyReads, 3);
     assert.equal(report.fakeSendInvocations, 0);
     assert.equal(fs.existsSync(files.attempt), false);
     assert.equal(report.lockExistsAfter, false);

@@ -117,6 +117,10 @@ These are workflow recommendations only. A human still decides interview and hir
 
 ## Two-round conversation
 
+### Claude Code account follow-up
+
+Follow the shared [Claude Code account rule](../../boss-recruiting-followup/references/claude-code-account.md) for the preferred follow-up, sourced positive factor and unchanged two-round/score gates.
+
 ### Round 1
 
 For internships, ask what technologies and AI tools the candidate can use, what features they personally built, and what they can complete independently. Invite relevant competition awards or a public GitHub contribution as an optional addition. Ask no more than three concise questions and use already provided answers. Do not ask interns to validate code, explain a verification process, take tests, or submit evidence materials. Full-time questions depend on the confirmed job profile. Do not routinely request attachments.
@@ -130,6 +134,8 @@ For full-time roles: confirm monthly salary expectations, current employment and
 After round 2, stop substantive interviewing. Generate a real HR handoff only when admission gates pass; otherwise preserve a sourced hold and unknowns. Policy replies and handoffs retain the actual round and cannot hide a third substantive question. See [continuous-followup.md](continuous-followup.md) for recurring-task evidence and recovery rules.
 
 ## Approved status language
+
+Read the conversational intent before choosing a policy answer. For a light remark prompted by a late reply, such as “这么晚还回消息，是不是经常加班”, the user's preferred response is “碰巧看见消息，就回一下。” Keep it short; do not automatically append working hours or an unconfirmed-overtime disclaimer. A separate, substantive question about overtime still needs confirmed facts; this conversational example neither establishes an overtime policy nor promises no overtime. Do not resend an old response just to change its tone.
 
 Before an internal handoff, send only a necessary question or a direct response to an actual candidate question. Do not add a mechanical “好的，了解了” or an empty preparation/confirmation message merely to announce that information will be organized.
 

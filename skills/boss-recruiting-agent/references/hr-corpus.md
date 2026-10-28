@@ -8,6 +8,8 @@ Use the live Feishu table configured in `./.codex/boss-recruiting.json` under `l
 
 ## Before drafting a message
 
+Live retrieval is mandatory for each drafting run, including scheduled follow-ups. Store the authenticated read snapshot, retrieval time and selected scenario/record IDs with the private proposal. Reuse the same fresh read within that drafting run; do not substitute a previous batch's cache. Read populated HR wording even when reviewing availability, but pending approval does not become permission to promise its facts or to enable the row. Apply current job facts independently, especially salary caps, response deadlines and department boundaries.
+
 Complete the CLI/skill/user-login checks in [lark-setup.md](lark-setup.md) before querying the live corpus. A local starter template is not a substitute for authenticated, HR-approved rows.
 
 1. Classify the candidate situation into one or more scenario categories.

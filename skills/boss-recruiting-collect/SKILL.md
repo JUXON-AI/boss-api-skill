@@ -13,6 +13,7 @@ description: 只读采集已授权BOSS岗位的新招呼、新回复及真正漏
 2. 旧冻结清单与获准新招呼独立登记，按UID+job跨run去重，不向旧manifest塞新UID或合并疑似重复账号。其他岗位不处理。
 3. 覆盖waiting之外仍可读的hold/未完成材料，以及已授权历史联系人活动；终态/暂停依据实际策略处理，暂停不会自动解除。metadata变化是完整读取线索，不是新文本证明；已知null基础但metadata不变的跳读须有已验收规则。
 4. 保存联系人分页和history真实来源、完整性及profile/job指纹。短页只说明实际所见页，不夸称整个服务端全量或八百联系人均完成筛选。
+5. 当前客户端历史分页复用仓库 `scripts/history-pagination.mjs`：用 `maxMsgId` 推进，必须得到明确 `hasMore=false` 才算完整。默认20条只是一个片段，不能用 `lastMsgId`、`count` 或页码假定已完整。重复边界须核对正文与身份；非末页无进展、冲突或超出页数上限即停。接口版本变化先重新验证，详见仓库 `references/reading.md`。
 
 ## 增量分类
 

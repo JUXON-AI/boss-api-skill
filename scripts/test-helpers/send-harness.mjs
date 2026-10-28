@@ -178,7 +178,11 @@ const runtimeSyntheticModule = new vm.SyntheticModule(Object.keys(runtimeExports
   for (const [name, value] of Object.entries(runtimeExports)) this.setExport(name, value);
 }, {context, identifier: 'offline:runtime.mjs'});
 
+const paginationModule = new vm.SourceTextModule(fs.readFileSync(path.join(path.dirname(bossPath), 'history-pagination.mjs'), 'utf8'), {context, identifier:'offline:real-history-pagination'});
+await paginationModule.link(() => { throw new Error('Unexpected pagination dependency'); });
+await paginationModule.evaluate();
 async function linkBoss(specifier) {
+  if (specifier === './history-pagination.mjs') return paginationModule;
   if (specifier === 'node:fs') return fsModule;
   if (specifier === 'node:path') return pathModule;
   if (specifier === './runtime.mjs') return runtimeSyntheticModule;

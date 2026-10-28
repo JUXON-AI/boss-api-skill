@@ -1,6 +1,7 @@
 import {withBoss, historyFingerprint} from './runtime.mjs';
 import {projectHistory} from './batch.mjs';
 import {archivePath} from './platform.mjs';
+import {readCompleteHistory} from './history-pagination.mjs';
 
 // Reuses an owned Inspector only inside a bounded callback, never across processes
 // or writes. There is deliberately no renderer, eval, arbitrary bridge or send API.
@@ -73,7 +74,7 @@ export async function withReadonlySession(callback, {
         const c = contacts.get(`${String(candidate.jobId)}:${candidate.uid}`);
         if (!c || c.name !== candidate.name || String(c.jobId) !== String(candidate.jobId)) throw new Error('History requires freshly matched contact in this session');
         if (typeof c.securityId !== 'string' || !c.securityId) throw new Error('History target metadata missing');
-        const response = await request('zpChatHistoryMsg', {uid: c.uid, securityId: c.securityId, lastMsgId: 0, count: 30});
+        const response = await readCompleteHistory(params => request('zpChatHistoryMsg', params), {uid: c.uid, securityId: c.securityId});
         const view = projectHistory(response, candidate);
         const messages = response.zpData.messages;
         if (!view.complete || new Set(messages.map(m => String(m.mid))).size !== messages.length || messages.some(m => m.mid == null)) {

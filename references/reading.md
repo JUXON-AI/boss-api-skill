@@ -1,5 +1,11 @@
 # 聊天与简历读取
 
+## 2026-10-28 分页修复
+
+本机客户端已实测历史分页参数为 `maxMsgId`：首段传0，后续传当前最早消息mid。`lastMsgId`、`count`与页码不能代替此游标，实际默认每段20条。共用实现见 `scripts/history-pagination.mjs`，普通轮询、只读session、runner与统一sender已接入。下文早期单页示例只描述历史验证阶段。
+
+必须校验每页身份、消息ID及重复边界内容，游标无进展或达到页数上限均停止并保留不完整状态；只在服务端明确 `hasMore=false` 后完成拼接。末页可能只重复边界消息并标记结束。单页原顺序保持；多页拼接去重按时间及mid排序。分页读取不授权重新发送或解除人工接续。
+
 将 `<skill>` 替换为 skill 所在目录，先创建项目输出目录 `outputs/boss`。JSON 必须写新文件。脚本通过 Inspector 进入已核验的主进程，再按 URL 和类型唯一选择 root window 与 recruiter webview。
 
 Windows 请让脚本创建新的敏感输出子目录，例如 `outputs/windows-private`，不要先创建一个权限继承过宽的目录。Windows 当前成功的能力与样本范围见 [Windows 报告](windows-validation.md)。

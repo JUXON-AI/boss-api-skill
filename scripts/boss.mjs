@@ -50,7 +50,7 @@ async function contact(ctx, uid, name) {
 }
 async function history(ctx, c, action='history-read') {
   return diagnosticStep('history',action,async()=>{
-    const r=assertSuccess(await ctx.bridge('api','zpChatHistoryMsg',{uid:c.uid,securityId:c.securityId,lastMsgId:0,count:30}),'History');
+    const r=assertSuccess(await readCompleteHistory(params=>ctx.bridge('api','zpChatHistoryMsg',params),c),'History');
     if (!Array.isArray(r.zpData?.messages)) throw new Error('History schema changed');
     return r;
   });
@@ -275,3 +275,4 @@ main().catch(error=>{
   catch { process.stderr.write('{"ok":false,"error":"Failure logging unavailable","automaticMutationRetry":false}\n'); }
   process.exitCode=1;
 });
+import {readCompleteHistory} from './history-pagination.mjs';
