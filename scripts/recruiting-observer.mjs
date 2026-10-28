@@ -20,6 +20,7 @@ function validateConfig(config) {
   if (!/^assets\/[a-zA-Z0-9._-]+\.js$/.test(config.clientSource?.member ?? '')) throw new Error('Runtime source member pin required');
   if (hash(fs.readFileSync(config.clientSource.path)) !== config.clientSource.sha256) throw new Error('Unpacked client source changed');
   if (!Number.isInteger(config.maxHistoriesPerPass) || config.maxHistoriesPerPass < 1 || config.maxHistoriesPerPass > 32) throw new Error('Bounded observer history budget required');
+  if (config.sessionMaxMs !== undefined && (!Number.isFinite(config.sessionMaxMs) || config.sessionMaxMs < 5000 || config.sessionMaxMs > 30000)) throw new Error('Observer session budget must be 5000..30000ms');
   for (const c of config.scope) {
     if (!Number.isSafeInteger(c.uid) || c.uid < 1 || typeof c.name !== 'string' || !c.name || c.jobId !== config.jobId) throw new Error('Invalid observer scope identity');
     if (c.handledMids !== undefined && (!Array.isArray(c.handledMids) || c.handledMids.some(mid => !Number.isSafeInteger(mid) || mid <= 0))) throw new Error('Observer handledMids must use positive safe integer IDs');
@@ -133,7 +134,7 @@ export async function observeOnce(config, {withSession = withReadonlySession, no
         }
         await wait(200);
       }
-    }, {maxMs: 5000, maxCalls: 24, canRead: () => !busy(), onMetric: m => metrics.push(m), sourcePin: config.clientSource});
+    }, {maxMs: config.sessionMaxMs ?? 5000, maxCalls: 24, canRead: () => !busy(), onMetric: m => metrics.push(m), sourcePin: config.clientSource});
   } catch (error) {
     observerError = {code: error.code ?? 'OBSERVER_STOPPED', name: error.name};
     write(path.join(out, 'failure.json'), {at: new Date(now()).toISOString(), diagnostic: serializeDiagnosticError(error), SDKSendInvoked: false});

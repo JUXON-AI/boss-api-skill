@@ -36,6 +36,20 @@ test('invalid handled-mid types fail before any session, lock or output', async 
     assert.equal(fs.existsSync(f.config.root), false);
   } finally {fs.rmSync(f.parent, {recursive: true, force: true});}
 });
+
+test('bounded session override leaves read count and workflow guards intact', async () => {
+  const f=setup();let options;
+  try {
+    f.config.sessionMaxMs=20000;
+    await observeOnce(f.config,{withSession:async(callback,opts)=>{options=opts;return callback({contacts:async()=>[]});},wait:async()=>{}});
+    assert.equal(options.maxMs,20000);assert.equal(options.maxCalls,24);assert.equal(options.canRead(),true);
+    fs.writeFileSync(f.config.workflowLocks[0],'busy');assert.equal(options.canRead(),false);
+    fs.unlinkSync(f.config.workflowLocks[0]);
+    f.config.sessionMaxMs=30001;let called=false;
+    await assert.rejects(observeOnce(f.config,{withSession:async()=>{called=true;}}),/5000\.\.30000/);
+    assert.equal(called,false);
+  }finally{fs.rmSync(f.parent,{recursive:true,force:true});}
+});
 test('two passes queue each exact inbound once, and a later mid remains visible', async () => {
   const f = setup(); let mid = 10, calls = 0;
   const withSession = async callback => callback({contacts: async () => [f.candidate], history: async () => {
