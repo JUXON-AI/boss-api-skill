@@ -351,7 +351,20 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
       addError(errors, 'safety_state_inconsistent', 'bossHandoffSent requires baseReadbackVerified=true');
     }
 
-    if (TERMINAL_STATES.has(currentRecord?.state)) {
+    const latestPermission = latestMessage(messages, packetCandidate?.uid);
+    const permissionMessage = messages.find(message => midKey(message.mid) === midKey(latestPermission.mid));
+    const firstResumePermission = currentRecord?.state === 'skipped_unknown_base' && proposal?.kind === 'policy'
+      && currentRecord.communication.round === 0 && currentRecord.score.ability_base_score === null
+      && proposal.text === '可以，直接在BOSS上发就行。'
+      && proposal.nextRecord?.state === 'skipped_unknown_base' && proposal.nextRecord?.recommendation === 'skip'
+      && proposal.nextRecord?.next_round === 0 && proposal.nextRecord?.communication?.round === 0
+      && safeHash(currentRecord.score) === safeHash(proposal.nextRecord.score)
+      && latestPermission.direction === 'in' && isOrdinaryText(permissionMessage)
+      && /(?:可以|能|方便|可否|是否)/u.test(permissionMessage.body.text)
+      && /(?:发.{0,8}简历|简历.{0,8}发)/u.test(permissionMessage.body.text)
+      && proposal.citations?.some(citation => midKey(citation.mid) === midKey(permissionMessage.mid))
+      && !messages.some(message => message.from?.uid !== packetCandidate?.uid && isOrdinaryText(message));
+    if (TERMINAL_STATES.has(currentRecord?.state) && !firstResumePermission) {
       addError(errors, 'terminal_state', `candidate state ${currentRecord.state} is terminal`);
     }
     if (currentRecord?.state === 'ai_screened_pass' && ['substantive_round1', 'substantive_round2'].includes(proposal?.kind)) {

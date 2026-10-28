@@ -110,6 +110,34 @@ function input(overrides = {}) {
 
 function codes(result) { return result.errors.map(error => error.code); }
 
+test('unknown-base first resume permission is policy only and retains every screening gate', () => {
+  const own = [{mid: 1, time: 1, from: {uid: UID}, to: {uid: 900}, body: {type: 1, text: '可以把简历发给您吗？'}}];
+  const sha = historyFingerprint(own);
+  const current = record({state: 'skipped_unknown_base', recommendation: 'skip', next_round: 0,
+    history: {...record().history, sha256: sha, last_mid: 1},
+    score: {...record().score, dimensions: {core_role_skills: null, project_depth: null, engineering_habits: null, learning_and_collaboration: null}, ability_base_score: null, evidence_coverage_percent: 0, final_signal_score: null},
+    communication: {round: 0, last_outbound_mid: null, last_outbound_at: null, pending_inbound_mids: [1]}});
+  const cas = canonicalJsonSha256(current);
+  const value = input({currentRecord: current,
+    packet: packet({recordSha256: cas, history: {complete: true, messages: own, sha256: sha}}),
+    proposal: proposal({kind: 'policy', text: '可以，直接在BOSS上发就行。', expectedRecordSha256: cas,
+      expectedHistorySha256: sha, citations: [{mid: 1, quote: own[0].body.text}], nextRecord: structuredClone(current)})});
+  assert.equal(validateProposal(value).valid, true);
+  for (const mutate of [
+    v => { v.packet.safety.blocked = true; },
+    v => { v.packet.safety.humanConversationHold = true; },
+    v => { v.proposal.text += ' 你会什么语言？'; },
+    v => { v.proposal.kind = 'substantive_round1'; },
+    v => { v.proposal.nextRecord.next_round = 1; },
+    v => { v.proposal.citations = []; },
+    v => { v.currentRecord.state = 'stop_contact'; },
+    v => { v.packet.history.messages[0].body.text = '简历已经发过了'; },
+  ]) {
+    const changed = structuredClone(value); mutate(changed);
+    assert.equal(validateProposal(changed).valid, false);
+  }
+});
+
 test('no-send stop accepts a reviewed hard conflict with the latest candidate citation and unchanged ability', () => {
   const p = proposal({kind: 'hold', text: null}, {
     state: 'current_role_mismatch', recommendation: 'stop', next_round: 0,
