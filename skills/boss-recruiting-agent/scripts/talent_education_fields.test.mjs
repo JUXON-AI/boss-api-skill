@@ -242,3 +242,10 @@ test('validates ranking origin, digest, and actual positive ranks', () => {
   assert.throws(() => buildEducationRankPatch({...base, ranking: {...RANKING, sourceSha256: 'bad'}}), /SHA-256/i);
   assert.throws(() => buildEducationRankPatch({...base, ranking: {...RANKING, entries: [{name: '示例大学', rank: '第18名'}]}}), /rank/i);
 });
+
+test('a previously displayed same-category school rank is idempotent', () => {
+  const result=buildEducationRankPatch({...input([resumeMessage({school:'示例大学',degree:'本科'})]),
+    currentValues:{'院校':'示例大学（18，中国民办高校排名（主榜））','学历':'本科'},
+    ranking:{...RANKING,category:'中国民办高校排名（主榜）'}});
+  assert.deepEqual(result.patch,{});assert.deepEqual(result.conflicts,[]);
+});

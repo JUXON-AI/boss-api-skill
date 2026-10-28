@@ -274,12 +274,14 @@ function currentDegree(value) {
   return typeof value === 'string' ? DEGREES.get(value.trim()) : undefined;
 }
 
-function currentSchoolMatches(value, school) {
+function currentSchoolMatches(value, school, category) {
   if (value === school) return true;
   if (typeof value !== 'string') return false;
   const prefix = `${school}（`;
   if (!value.startsWith(prefix) || !value.endsWith('）')) return false;
-  const currentRank = value.slice(prefix.length, -1).trim();
+  let currentRank = value.slice(prefix.length, -1).trim();
+  const categorySuffix = `，${category}`;
+  if (currentRank.endsWith(categorySuffix)) currentRank = currentRank.slice(0, -categorySuffix.length);
   const numeric = /^[1-9]\d*$/.test(currentRank) && Number.isSafeInteger(Number(currentRank));
   return numeric || parseRank(currentRank) !== undefined;
 }
@@ -319,7 +321,7 @@ export function buildEducationRankPatch({
     unavailable['院校'] = extracted.unknown.school ?? 'conflicting_explicit_school';
   } else {
     const current = currentValues['院校'];
-    if (!isEmpty(current) && !currentSchoolMatches(current, school)) {
+    if (!isEmpty(current) && !currentSchoolMatches(current, school, verifiedRanking.category)) {
       conflicts.push({field: '院校', reason: 'current_school_mismatch', current, value: school,
         evidence: extracted.evidence.school});
     } else {
