@@ -16,8 +16,14 @@ export function powershell(script, data = {}) {
 }
 
 export function windowsProcesses() {
-  const raw = powershell(`@((Get-CimInstance Win32_Process -Filter "Name='boss-zhipin.exe'") |
-    Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress`);
+  let raw;
+  try {
+    raw = powershell(`@((Get-CimInstance Win32_Process -Filter "Name='boss-zhipin.exe'") |
+      Select-Object ProcessId,ExecutablePath,CommandLine) | ConvertTo-Json -Compress`);
+  } catch (wmiError) {
+    try { raw = powershell(fs.readFileSync(new URL('./windows-process-inventory.ps1', import.meta.url), 'utf8')); }
+    catch (fallbackError) { throw new Error('Both WMI and read-only process inventory failed', {cause: fallbackError}); }
+  }
   const rows = raw ? JSON.parse(raw) : [];
   return Array.isArray(rows) ? rows : [rows];
 }
