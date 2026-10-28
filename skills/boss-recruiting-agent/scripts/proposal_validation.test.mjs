@@ -110,6 +110,25 @@ function input(overrides = {}) {
 
 function codes(result) { return result.errors.map(error => error.code); }
 
+test('no-send stop accepts a reviewed hard conflict with the latest candidate citation and unchanged ability', () => {
+  const p = proposal({kind: 'hold', text: null}, {
+    state: 'current_role_mismatch', recommendation: 'stop', next_round: 0,
+    job_fit: {score: 85, hard_condition_status: 'conflict'},
+  });
+  const result = validateProposal(input({proposal: p}));
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test('no-send stop rejects a missing latest candidate citation or a missing hard conflict', () => {
+  const p = proposal({kind: 'hold', text: null, citations: []}, {
+    state: 'current_role_mismatch', recommendation: 'stop', next_round: 0,
+  });
+  const result = validateProposal(input({proposal: p}));
+  assert.equal(result.valid, false);
+  assert.ok(codes(result).includes('stop_candidate_citation_missing'));
+  assert.ok(codes(result).includes('stop_conflict_missing'));
+});
+
 test('round two rejects a stale outbound anchor even when the old reply is cited', () => {
   const newer = [...messages, {mid: 4, time: 4, from: {uid: 900}, to: {uid: UID}, body: {text: 'A later actual outbound'}}];
   const fingerprint = historyFingerprint(newer);

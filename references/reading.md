@@ -36,7 +36,9 @@ node <skill>/scripts/boss.mjs history --uid <数字uid> --name '<真实姓名>' 
 
 UID和姓名必须同时唯一匹配。已知岗位可加 `--job-id '<联系人jobId>'`，对应 `jobId`，不要误用 `encryptJobId`。默认只在联系人第一页查找，可指定 `--page`，但页码是否生效尚未形成可靠契约；逐页比较 UID 集合，重复即停，不能仅凭 page 参数声称全量。找不到授权对象时如实说明，不换人测试。
 
-输出保存联系人、原始历史和 `historySha256`，后者将审阅草稿绑定到当时会话。返回顺序不保证时间顺序，不直接把数组最后一项叫最新消息。`hasMore=true` 表示只拿到一段，历史游标规则未全面验证。
+输出保存联系人、原始历史和 `historySha256`，后者将审阅草稿绑定到当时会话。返回顺序不保证时间顺序，不直接把数组最后一项叫最新消息。当前历史游标已验证为 `maxMsgId`，统一复用 `scripts/history-pagination.mjs` 读到明确 `hasMore=false`；不能回退单页、`lastMsgId`或`count`假完整。联系人分页与消息历史分页分别验收。
+
+正常联系人请求出现TLS主机名与证书不符时，保留原错误、代理/解析和正常客户端源码证据。当前客户端已验证零参数`_sdk_refreshBuiltInDNS`刷新内置DNS；只有确认版本和现有读取修复授权后才单次调用并验返回code，再只读验证受影响范围。不关闭TLS、不擅自改系统代理、不重启登录、不重试sender；刷新后恢复不单独证明底层原因。
 
 `body.resume` 通常是资料卡，不是PDF；`body.hyperLink` 可能是已收到的附件。消息状态数值不能直接映射已读，`zpchatGetLastRead` 曾被权限拒绝。
 

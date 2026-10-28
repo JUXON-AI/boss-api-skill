@@ -66,6 +66,21 @@ test('two passes queue each exact inbound once, and a later mid remains visible'
     assert.equal(fs.existsSync(path.join(f.config.root, 'observer.lock')), false);
   } finally {fs.rmSync(f.parent, {recursive: true, force: true});}
 });
+
+test('contacts beyond the former tenth-page limit remain observable', async () => {
+  const f=setup(),visited=[],histories=[];
+  f.config.authorization.newGreetings=false;
+  try {
+    const result=await observeOnce(f.config,{withSession:async callback=>callback({
+      contacts:async page=>{visited.push(page);return page<12?Array.from({length:100},(_,i)=>({uid:10000+page*100+i,name:'synthetic',jobId:'fixture',lastTS:1,relationType:6})):[f.candidate];},
+      history:async candidate=>{histories.push(candidate.uid);return {complete:true,sha256:'a'.repeat(64),messages:[{mid:10,time:1,from:{uid:42},to:{uid:9},body:{text:'synthetic'}}]};}
+    }),wait:async()=>{}});
+    assert.deepEqual(visited,Array.from({length:12},(_,i)=>i+1));
+    assert.deepEqual(histories,[42]);
+    assert.equal(result.queued,1);
+    assert.equal(result.listCoverage,'observed_short_final_page_no_server_total');
+  }finally{fs.rmSync(f.parent,{recursive:true,force:true});}
+});
 test('an event survives loss of the checkpoint without requeueing its exact mid', async () => {
   const f = setup(); let second = false;
   const withSession = async callback => callback({contacts: async () => [f.candidate], history: async () => ({complete: true, sha256: 'a'.repeat(64),

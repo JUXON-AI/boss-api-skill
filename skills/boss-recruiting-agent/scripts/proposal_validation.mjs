@@ -423,7 +423,14 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
     if (proposal?.kind === 'hold') {
       if (nextRecordValid) {
         if (nextRound !== currentRound) addError(errors, 'hold_round_changed', 'hold proposals must retain the actual communication.round');
-        if (proposal.nextRecord?.recommendation !== 'hold') addError(errors, 'hold_recommendation_mismatch', 'hold proposals require recommendation=hold');
+        const stopping = proposal.nextRecord?.recommendation === 'stop'
+          && ['current_role_mismatch', 'stop_contact'].includes(proposal.nextRecord?.state);
+        if (stopping) {
+          if (proposal.nextRecord?.job_fit?.hard_condition_status !== 'conflict') addError(errors, 'stop_conflict_missing', 'a no-send stop requires a reviewed hard-condition conflict');
+          const last = latestMessage(messages, packetCandidate?.uid);
+          if (last.direction !== 'in' || !proposal.citations?.some(c => midKey(c.mid) === midKey(last.mid))) addError(errors, 'stop_candidate_citation_missing', 'a no-send stop must cite the latest actual candidate message');
+          if (safeHash(currentRecord?.score) !== safeHash(proposal.nextRecord?.score)) addError(errors, 'stop_score_changed', 'a hard-condition stop must preserve the reviewed ability score');
+        } else if (proposal.nextRecord?.recommendation !== 'hold') addError(errors, 'hold_recommendation_mismatch', 'hold proposals require recommendation=hold');
         if (proposal.nextRecord?.next_round !== 0) addError(errors, 'hold_next_round_mismatch', 'hold proposals require next_round=0');
       }
     }

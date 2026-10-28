@@ -12,9 +12,32 @@ const endpoint = new URL(process.env.BOSS_INSPECTOR_URL || 'http://127.0.0.1:922
 if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash) throw new Error('Inspector must be a loopback HTTP origin');
 export const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 export function historyFingerprint(messages) {
-  // Only the message envelope's per-read securityId rotates in observed history.
-  // Keep the full body, identities, IDs, timestamps and all other metadata bound.
-  return hash(JSON.stringify(messages.map(({securityId, ...message}) => message)));
+  // These exact authentication fields rotate on ordinary reads. Keep all other
+  // body content, identities, message order, IDs and timestamps bound.
+  return hash(JSON.stringify(messages.map(({securityId, ...message}) => {
+    const body = message.body;
+    if (!body || typeof body !== 'object') return message;
+    let stableBody = body;
+    if (body.type === 9 && body.resume?.user?.uid === message.from?.uid && body.resume?.jobId) {
+      const {securityId: resumeAuthentication, ...resume} = body.resume;
+      stableBody = {...stableBody, resume};
+    }
+    if (body.image && typeof body.image === 'object') {
+      const image = {...body.image};
+      for (const key of ['tinyImage', 'originImage']) {
+        const url = image[key]?.url;
+        if (typeof url !== 'string' || !url.startsWith('https://imgaz.bosszhipin.com/')) continue;
+        const query = url.indexOf('?'), fragment = url.indexOf('#');
+        const end = fragment < 0 ? url.length : fragment;
+        if (query < 0 || query >= end) continue;
+        const normalized = url.slice(query + 1, end).split('&')
+          .map(part => part.startsWith('auth_key=') ? 'auth_key=per-read' : part).join('&');
+        image[key] = {...image[key], url: url.slice(0, query + 1) + normalized + url.slice(end)};
+      }
+      stableBody = {...stableBody, image};
+    }
+    return {...message, body: stableBody};
+  })));
 }
 export const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 export function save(file, value, exclusive = true) {

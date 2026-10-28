@@ -54,7 +54,7 @@ export async function observeOnce(config, {withSession = withReadonlySession, no
   try {
     await withSession(async session => {
       const contacts = [], signatures = new Set();
-      for (let page = 1; page <= 10; page++) {
+      for (let page = 1; page <= 20; page++) {
         const rows = await session.contacts(page), signature = hash(JSON.stringify(rows.map(c => c.uid)));
         if (signatures.has(signature)) throw new Error('Repeated contact page; coverage unverified');
         signatures.add(signature); pages.push({page, count: rows.length, signature});

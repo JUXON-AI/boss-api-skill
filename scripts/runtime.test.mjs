@@ -20,6 +20,28 @@ test('history fingerprint ignores only rotating envelope securityId and still bi
   assert.equal(message.securityId,'old');
 });
 
+test('genuine profile authentication may rotate while profile identity and content remain bound',()=>{
+  const m={mid:10,time:123,from:{uid:12},to:{uid:7},body:{type:9,resume:{securityId:'old',jobId:55,user:{uid:12},applyStatus:'随时到岗'}}};
+  const rotated=structuredClone(m);rotated.body.resume.securityId='new';
+  assert.equal(historyFingerprint([m]),historyFingerprint([rotated]));
+  for(const change of [r=>r.user.uid=13,r=>r.jobId=56,r=>r.applyStatus='月内到岗']){
+    const altered=structuredClone(rotated);change(altered.body.resume);
+    assert.notEqual(historyFingerprint([m]),historyFingerprint([altered]));
+  }
+  assert.equal(m.body.resume.securityId,'old');
+});
+
+test('only the known BOSS image auth_key rotates; path, other parameters and other origins remain bound',()=>{
+  const message=url=>({mid:10,time:123,from:{uid:12},to:{uid:7},body:{type:3,image:{originImage:{url,width:100,height:200}}}});
+  const url='https://imgaz.bosszhipin.com/beijin/zp/chat/file/fixture.jpg?auth_key=old&width=100#page';
+  assert.equal(historyFingerprint([message(url)]),historyFingerprint([message(url.replace('auth_key=old','auth_key=new'))]));
+  for(const changed of [url.replace('fixture.jpg','other.jpg'),url.replace('width=100','width=200'),url.replace('#page','#other')]){
+    assert.notEqual(historyFingerprint([message(url)]),historyFingerprint([message(changed)]));
+  }
+  const other=url.replace('imgaz.bosszhipin.com','example.com');
+  assert.notEqual(historyFingerprint([message(other)]),historyFingerprint([message(other.replace('auth_key=old','auth_key=new'))]));
+});
+
 test('candidate selection rejects same name with another UID, duplicate identities and wrong job',()=>{
   const a={uid:12,name:'测试甲',jobId:'job-a'}, b={uid:13,name:'测试甲',jobId:'job-b'};
   assert.equal(selectContact([a,b],12,'测试甲','job-a'),a);

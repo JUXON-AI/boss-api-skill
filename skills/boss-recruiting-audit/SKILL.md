@@ -20,6 +20,8 @@ description: 审核BOSS招聘动作回执、失败和暂停，执行只读对账
 
 保存实际stage/action/requestId/elapsed、native code/name/message/stack/cause/cleanup并脱敏，只记录真实可得项。缺失原错误留未知，源码顺序推导标推导，不编造冻结/网络/登录根因。未尝试不当请求失败，本地修稿成功不冒称线上故障修复。
 
+完整指纹变化先比较原始只读快照的具体字段。当前已证实的动态鉴权项限消息外层securityId、身份匹配的type9资料卡resume.securityId，以及imgaz.bosszhipin.com图片URL的auth_key。统一runtime只归一这些项，正文、资料、身份、时间、图片路径和其他参数仍参与指纹；不能用较宽的semantic指纹替代完整发前检查。保留历史算法回执，新规则须用原捕获样本和正文/身份变化反例离线验收；不能用重发测试修复，也不解除已经调用sender的暂停。
+
 ## 本轮验收
 
 提速测试分开标注：合成review调度、真实只读请求/连接、自然候选回复端到端。没有真实发送样本不报已实现端到端倍率，不发测试消息；观察器按源文件/精确mid入待审队列，不把“已发现”报为“已回复”。
