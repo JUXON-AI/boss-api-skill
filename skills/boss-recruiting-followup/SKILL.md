@@ -5,6 +5,8 @@ description: BOSS招聘skills包总入口。接续已配置任务或定时轮询
 
 # BOSS招聘持续跟进
 
+用户选择全程DeepSeek Harness时，从[boss-recruiting-deepseek-harness](../boss-recruiting-deepseek-harness/SKILL.md)进入，先应用宿主适配，再复用本流程；不要求Codex/JUXON工具。
+
 先读[公共契约](references/common-contract.md)，从用户工作区及私有任务入口读取最新指示、岗位/授权、scope/manifest、main-state及latestHeartbeat.source。只为未完成事项读对应record、回执和CONTINUE段落，不搬运整段批次历史。
 
 ## 按当前动作加载
@@ -26,7 +28,7 @@ description: BOSS招聘skills包总入口。接续已配置任务或定时轮询
 
 1. 检查已有锁、真实活跃进程和未完成回执；从真实增量接续，不重复委派、重发或入库。只读与发送由主代理串行执行。
    当前客户端历史按collect规则完整分页；有未读页先补齐。每次拟回复前按message规则查实时HR语料，不能只凭旧缓存或机械模板。
-2. 有未读主动简历则先经resume取得本人正文；有真正新证据才经review。用户指定时主要委派JUXON单人离线复核，默认最多4人并行；任一人完成就主验并串行处理，不等整批结束，不将多人材料合并给同一代理。
+2. 有未读主动简历则先经resume取得本人正文；有真正新证据才经review。按用户当前宿主与分工使用隔离的单人离线复核，默认最多4人并行；任一人完成就主验并串行处理，不等整批结束，不将多人材料合并给同一代理。Harness模式不要求JUXON；缺少隔离子代理时主代理逐人复核。
    已到手正文与完整history一次传齐；单人等附件时继续处理其他人，不阻塞整批。优先接续已有答复及可达标事项，再做新招呼。正常轮询复用已验收入口和数据配置，不逐人临时生成一套执行代码；新增结构问题隔离该阶段，其他人继续。
 3. review判定需要合法问询才转message；满足门槛且正式校验为ai_screened_pass才转talent。两轮上限约束筛问，不禁止真实入库后的通知。
 4. 现有授权覆盖整条链路时，本轮继续完成Base读回、BOSS交接、最后联系再读回及已启用群推送，不停在“已拟方案”或Base写完，不逐人重复请示。新入站、真实失败或暂停仅停止相应阶段留证。

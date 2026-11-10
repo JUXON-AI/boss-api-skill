@@ -16,6 +16,6 @@
 
 “项目scripts/references”均相对仓库skills/boss-recruiting-agent/，标明仓库根的路径除外。必要时按文件名搜索，不加载所有项目引用。首次解包、版本适配、评分/写入实现缺失是对应技术开发任务，不在持续跟进中临时绕过。
 
-安装时将清单中的9个模块及boss-recruiting-agent实现资料完整复制到同级目录，避免相对文档引用缺失。执行脚本仍从工作区仓库调用并保留scripts/skills布局；安装目录中的副本不构成可独立运行的另一套sender或评分入口。同步只更新文件，不启动观察器、恢复定时或执行招聘动作。
+安装时将清单中的全部模块及boss-recruiting-agent实现资料完整复制到同级目录，避免相对文档引用缺失。使用仓库scripts/recruiting-skills-install.mjs，按--host选择实际宿主；覆盖前自动备份旧文件，--check核文件SHA。执行脚本仍从工作区仓库调用并保留scripts/skills布局；安装目录中的副本不构成可独立运行的另一套sender或评分入口。同步只更新文件，不启动观察器、恢复定时或执行招聘动作。
 
 飞书操作读取对应已安装lark-base/lark-mail/lark-drive/lark-im skill和当前CLI帮助，不猜参数。表写权限用已授权用户身份；机器人仅承担已授权群推荐。没有调用外部服务验证的离线测试不得称真实写入成功。

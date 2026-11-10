@@ -14,7 +14,7 @@
 
 完成回执按source留存，不永久锁死本人后续真新回复。第二轮以完整history中最新实际招聘者出站为锚，正式record锚点落后则先接续核对，不拿旧答复发第二轮。发后只允许实际发送元数据及对应流程状态变化；岗位、本人身份、score/evaluation、facts、job_fit、sources和schema必须与已批准nextRecord相同。政策答复保留批准的hold/NMI状态，不能自动重置continue_contact。
 
-review回调由当前主代理的原生JUXON委派提供；库不包含模型鉴权或后台自动群发。主代理用原生wait的“任一完成”语义接续，及时关闭完成代理，按余量补下一人。历史已完结项与精准已审mid在进入流水线前过滤。
+review回调由用户所选宿主的单人离线复核提供：Codex可按原授权使用JUXON，Harness使用其隔离原生子代理，缺少隔离工具时主代理逐人复核。库不包含模型鉴权或后台自动群发。主代理用宿主实际提供的完成通知接续并回收代理，按余量补下一人。历史已完结项与精准已审mid在进入流水线前过滤。
 
 ## 自动校验与自然回复
 
@@ -29,7 +29,7 @@ node scripts/recruiting-review.mjs check <request.json> <raw-model-response.json
 
 packet沿当前单人材料格式：candidate含uid/name/jobId，jobProfile、formalRecord及canonical formalRecordSHA（新真实R0可为null）、完整可重算history。本人PDF正文放documents数组，每项id/uid/jobId/identityVerified/text/textSha256，不能只给路径让代理另找附件。source/sourceByteSHA存在时核真实文件字节；历史、岗位及原record全文不裁剪。已到手简历先合并，后到的新正文仍用新版本复核，不覆盖旧稿。
 
-prepare核材料后生成绑定与request.message。主代理编排代码读取message并直接传给原生单人JUXON；不要打印成截断终端输出后让代理补读，也不要把整个request再套入提示词（packet与message会重复）。代理只读提示内材料、不用工具、不写文件、不手算SHA，返回固定review JSON。主代理保存原始响应再check；固定JSON约束内部提案，候选人正文仍逐人自然起草，不强套同一话术。
+prepare核材料后生成绑定与request.message。主代理编排代码读取message并直接传给当前宿主的隔离单人复核；不要打印成截断终端输出后让代理补读，也不要把整个request再套入提示词（packet与message会重复）。代理只读提示内材料、不用工具、不写文件、不手算SHA，返回固定review JSON。主代理保存原始响应再check；固定JSON约束内部提案，候选人正文仍逐人自然起草，不强套同一话术。
 
 check一次返回全部结构/引文/原分保持/轮次/数值门槛错误。pass明确是建议入库；hold是暂缓，绝非英文pass的“跳过”。原稿和错误保留，再只修有证据的字段，不自动改分、不执行sender。check.valid只代表机械检查通过，semanticReviewRequired与mainApprovalRequired始终true；精确引文存在不代表语义足够，主验仍核问答对应、合并接受、学校/Go/AI实际含义及实时HR语料。check不会创建evaluation/正式proposal/审批或更新CAS，后续仍走原提案校验与独立主验。
 

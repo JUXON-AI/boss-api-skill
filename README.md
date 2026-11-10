@@ -64,27 +64,23 @@ node --test scripts/runtime.test.mjs
 
 Windows 使用 PowerShell 与本机 Node.js，无需 WSL、`ps` 或 Unix 信号。`BOSS_APP_MAIN` 可显式指定安装的 exe；通常直接使用 CIM 返回的唯一主进程路径。敏感输出在新建子目录中保存：Windows 使用仅当前用户与 SYSTEM 可访问的受保护 ACL，已有目录权限过宽则拒绝写入；macOS 保持 0600 文件模式。全部离线测试：`node --test scripts/*.test.mjs`。
 
-上述安装的是技术skill。招聘流程可使用下面的9模块skills包；`skills/boss-recruiting-agent` 保留项目实现、契约、脚本和兼容入口。
+上述安装的是技术skill。招聘流程使用下面的模块化skills包；`skills/boss-recruiting-agent` 保留项目实现、契约、脚本和兼容入口。1.3.0同时支持Codex与DeepSeek Harness。
 
 ### 安装招聘skills包
 
-分发清单见 [recruiting-skills.package.json](recruiting-skills.package.json)，总入口为 [$boss-recruiting-followup](skills/boss-recruiting-followup/SKILL.md)。将清单列出的9个目录安装为同级skills，保留共享引用；首次安装的Windows示例：
+分发清单见 [recruiting-skills.package.json](recruiting-skills.package.json)，Codex入口为 [boss-recruiting-followup](skills/boss-recruiting-followup/SKILL.md)，Harness入口为 [boss-recruiting-deepseek-harness](skills/boss-recruiting-deepseek-harness/SKILL.md)。从仓库执行安装和一致性检查：
 
 ```powershell
-$repo = "$env:USERPROFILE\.codex\skills\boss-desktop-api"
-$skillRoot = "$env:USERPROFILE\.codex\skills"
-$package = Get-Content -LiteralPath "$repo\recruiting-skills.package.json" -Raw | ConvertFrom-Json
-foreach ($name in $package.skills) {
-    $destination = Join-Path $skillRoot $name
-    if (Test-Path -LiteralPath $destination) { throw "已安装 $name，请先核对本地修改" }
-}
-foreach ($name in $package.skills) {
-    Copy-Item -LiteralPath "$repo\skills\$name" -Destination $skillRoot -Recurse
-}
+node scripts/recruiting-skills-install.mjs --host deepseek-harness
+node scripts/recruiting-skills-install.mjs --host deepseek-harness --check
+# Codex使用 --host codex；--home可指定实际宿主主目录。
 ```
+
+在DeepSeek Harness中打开实际工作区并加载`boss-recruiting-deepseek-harness`，提供已有私有任务入口即可接续；主验、CLI和原统一sender均由Harness主代理执行，不需要Codex/JUXON工具。参见[Harness宿主适配](skills/boss-recruiting-followup/references/deepseek-harness.md)。安装会备份被覆盖的文件，不修改鉴权、候选人账本或定时任务；新会话应核当前宿主实际加载路径，避免项目旧版覆盖用户安装版。
 
 | Skill | 职责 |
 | --- | --- |
+| [boss-recruiting-deepseek-harness](skills/boss-recruiting-deepseek-harness/SKILL.md) | Harness全程执行与宿主适配 |
 | [boss-recruiting-followup](skills/boss-recruiting-followup/SKILL.md) | 持续跟进与按需路由 |
 | [boss-recruiting-collect](skills/boss-recruiting-collect/SKILL.md) | 新招呼、新回复、真正漏回的只读采集 |
 | [boss-recruiting-review](skills/boss-recruiting-review/SKILL.md) | 单人证据、评分及草稿复核 |

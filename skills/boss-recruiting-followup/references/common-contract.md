@@ -11,7 +11,7 @@
 
 ## 操作纪律
 
-- 按本包对应用户流程，只用本地解包源码验证的正常SDK/桥接；禁用computer-use、CUA、GUI/DOM操作和DSH。版本或接口能力未验证先停相应阶段，不猜路由。
+- 按本包对应用户流程，只用本地解包源码验证的正常SDK/桥接；禁用computer-use、CUA、GUI/DOM操作。执行宿主和离线代理依用户当前选择；只有明确选择Harness全程模式时按[Harness适配](deepseek-harness.md)替换历史宿主分工，不擅自向其他会话转交。版本或接口能力未验证先停相应阶段，不猜路由。
 - 检查工作流/runner锁和对应真实活跃进程，避免并行；当前心跳自身active不是另一作业。主代理串行操作服务；离线代理只接收本人材料，产物待主验，不直接改正式账本或调用服务。
 - 候选人沟通只用BOSS；邮箱只收件、读取和归档，不邮件外联。真实BOSS文本发送统一scripts/boss.mjs send，复用当前scope已验收runner；不复制SDK捷径。
 - 每项副作用核现有授权及前置证据，独立attempt/回执/读回。结果未知不自动重发、重传、重建、换入口或换事件key；明确blocked或requiresSeparateExplicitDecision即使SDK未到仍暂停，普通“继续”或心跳不解除。
