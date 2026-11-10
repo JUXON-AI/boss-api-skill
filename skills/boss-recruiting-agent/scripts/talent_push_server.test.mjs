@@ -1,10 +1,28 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';
-import {matchesTalentPushMessage,assertTalentPushBoundary,readTalentPushEvidence} from './talent_push_server.mjs';
+import {matchesTalentPushMessage,assertTalentPushBoundary,readTalentPushEvidence,assertTalentGateEvidence} from './talent_push_server.mjs';
 const config={chatId:'oc_fixture',botOpenId:'ou_fixture_bot',appId:'cli_fixture'};
 const content={zh_cn:{title:'合成初筛记录',content:[[{tag:'text',text:'姓名：示例甲'}],[{tag:'text',text:'基础：70'}],[{tag:'a',text:'人才库',href:'https://example.feishu.cn/base/fixture'}]]}};
 const plan={content};
 const message={message_id:'om_fixture',chat_id:config.chatId,msg_type:'post',deleted:false,sender:{id:config.appId,sender_type:'app'},content:'合成初筛记录\n姓名：示例甲\n基础：70\n[人才库](https://example.feishu.cn/base/fixture)'};
+const digest=v=>crypto.createHash('sha256').update(v).digest('hex');
+test('document availability requires original bytes and exact main-approved identity binding',()=>{
+  const documentBytes=Buffer.from('%PDF-fixture'),textBytes=Buffer.from('每周5天，一周内到岗'),gate={condition:'onsite_days',sourceType:'document',quote:'每周5天',fileSha256:digest(documentBytes),textSha256:digest(textBytes)};
+  const gates=[gate,...['arrival','duration','location','salary','school'].map(condition=>({condition}))];
+  const input={messages:[],uid:1,jobId:'job',ownBossUid:2,approvedDocumentEvidence:{accepted:true,uid:1,documentIdentityVerified:true,documentTextSHA:gate.textSha256,gates},documentBytes,textBytes};
+  assert.doesNotThrow(()=>assertTalentGateEvidence(gate,input));
+  for(const changed of [{...input,uid:9},{...input,documentBytes:Buffer.from('changed')},{...input,textBytes:Buffer.from('changed')},{...input,approvedDocumentEvidence:{...input.approvedDocumentEvidence,documentIdentityVerified:false}}])assert.throws(()=>assertTalentGateEvidence(gate,changed));
+  assert.throws(()=>assertTalentGateEvidence({...gate,quote:'每周6天'},input));
+  assert.throws(()=>assertTalentGateEvidence({...gate,condition:'salary'},input));
+});
+test('message and profile gates retain both identity and job checks',()=>{
+  const messages=[{mid:4,from:{uid:1},to:{uid:2},body:{text:'可以接受'}},{mid:5,from:{uid:1},to:{uid:2},body:{resume:{user:{uid:1},jobId:'job',applyStatus:'随时到岗'}}}],input={messages,uid:1,jobId:'job',ownBossUid:2};
+  assert.doesNotThrow(()=>assertTalentGateEvidence({condition:'salary',mid:4,quote:'可以接受'},input));
+  const gate={condition:'arrival',mid:5,quote:'随时到岗'};
+  assert.doesNotThrow(()=>assertTalentGateEvidence(gate,input));
+  assert.throws(()=>assertTalentGateEvidence(gate,{...input,jobId:'other'}));
+  assert.throws(()=>assertTalentGateEvidence(gate,{...input,uid:2}));
+});
 test('verifies exact CLI text projection and equivalent native post JSON',()=>{
   assert.equal(matchesTalentPushMessage(message,plan,config,'om_fixture'),true);
   assert.equal(matchesTalentPushMessage({...message,content:JSON.stringify(content.zh_cn)},plan,config,'om_fixture'),true);

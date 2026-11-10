@@ -17,6 +17,29 @@ const save=(file,value)=>fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n'
 const scalar=value=>Array.isArray(value)?value[0]:value;
 const safeUid=value=>{const s=String(value);assert.match(s,/^[1-9]\d*$/);assert.ok(Number.isSafeInteger(Number(s)));return s;};
 
+/** Admission may bind availability to an identity-verified original PDF. */
+export function assertTalentGateEvidence(gate,{messages,uid,jobId,ownBossUid,approvedDocumentEvidence,documentBytes,textBytes}){
+  assert.ok(typeof gate.quote==='string'&&gate.quote.trim(),'empty gate quote');
+  if(gate.sourceType==='document'){
+    assert.ok(['onsite_days','duration','arrival'].includes(gate.condition),'document cannot replace other gate acceptance');
+    assert.equal(approvedDocumentEvidence?.accepted,true);
+    assert.equal(String(approvedDocumentEvidence.uid),String(uid));
+    assert.equal(approvedDocumentEvidence.documentIdentityVerified,true);
+    assert.equal(approvedDocumentEvidence.documentTextSHA,gate.textSha256);
+    const approved=normalizeTalentGateNotes(approvedDocumentEvidence).gates.find(g=>g.condition===gate.condition);
+    assert.equal(canonicalJsonSha256(approved),canonicalJsonSha256(gate),'document gate differs from main acceptance');
+    assert.ok(Buffer.isBuffer(documentBytes)&&Buffer.isBuffer(textBytes));
+    assert.equal(hash(documentBytes),gate.fileSha256,'original PDF changed');
+    assert.equal(hash(textBytes),gate.textSha256,'parsed original text changed');
+    assert.ok(textBytes.toString('utf8').includes(gate.quote),'document gate quote missing');
+    return;
+  }
+  const matches=messages.filter(m=>String(m.mid)===String(gate.mid));assert.equal(matches.length,1);
+  const m=matches[0];assert.equal(String(m.from.uid),String(uid));assert.equal(String(m.to.uid),String(ownBossUid));
+  if(gate.condition==='arrival'&&m.body?.resume){assert.equal(String(m.body.resume.user.uid),String(uid));assert.equal(String(m.body.resume.jobId),String(jobId));assert.equal(m.body.resume.applyStatus,gate.quote);}
+  else assert.ok(typeof m.body?.text==='string'&&m.body.text.includes(gate.quote),'gate quote not found in candidate evidence');
+}
+
 /** The decision and its proof must use exactly the same read bytes. */
 export function readTalentPushEvidence(file,files){
   const bytes=fs.readFileSync(file);files[file]=hash(bytes);return JSON.parse(bytes.toString('utf8'));
@@ -94,8 +117,16 @@ export function createTalentPushService(configFile){
     assert.equal(String(snapshot.candidate.uid),uid);assert.equal(snapshot.candidate.name,record.candidate.name);assert.equal(String(snapshot.candidate.jobId),String(c.jobId));assert.equal(snapshot.history.complete,true);
     const messages=snapshot.history.original_order_redacted;assert.ok(Array.isArray(messages));
     assert.deepEqual(notes.gates.map(g=>g.condition).sort(),['arrival','duration','location','onsite_days','salary','school']);
-    for(const gate of notes.gates){const matches=messages.filter(m=>String(m.mid)===String(gate.mid));assert.equal(matches.length,1);const m=matches[0];assert.equal(String(m.from.uid),uid);assert.equal(String(m.to.uid),String(c.ownBossUid));
-      if(gate.condition==='arrival'&&m.body?.resume){assert.equal(String(m.body.resume.user.uid),uid);assert.equal(String(m.body.resume.jobId),String(c.jobId));assert.equal(m.body.resume.applyStatus,gate.quote);}else assert.ok(typeof m.body?.text==='string'&&m.body.text.includes(gate.quote),'gate quote not found in candidate evidence');}
+    const documentApproval=notes.gates.some(g=>g.sourceType==='document')?readEvidence(path.join(path.dirname(acceptanceFile),'main-draft-acceptance.json')):null;
+    for(const gate of notes.gates){
+      let documentBytes,textBytes;
+      if(gate.sourceType==='document'){
+        const file=contained(gate.file,c.evidenceRoots),textFile=contained(gate.textFile,c.evidenceRoots);
+        documentBytes=fs.readFileSync(file);textBytes=fs.readFileSync(textFile);
+        evidenceFiles[file]=hash(documentBytes);evidenceFiles[textFile]=hash(textBytes);
+      }
+      assertTalentGateEvidence(gate,{messages,uid,jobId:c.jobId,ownBossUid:c.ownBossUid,approvedDocumentEvidence:documentApproval,documentBytes,textBytes});
+    }
     const q=messages.find(m=>String(m.mid)===String(notes.questionMid));assert.ok(q);assert.equal(String(q.from.uid),String(c.ownBossUid));for(const fragment of notes.requiredQuestionFragments)assert.ok(q.body.text.includes(fragment));
     const auth=await cli(c,folder,'identity',['auth','status','--json','--verify']);assert.equal(auth.appId,c.appId);assert.equal(auth.identities.bot.openId,c.botOpenId);assert.equal(auth.identities.bot.verified,true);
     const group=await cli(c,folder,'group',['im','chats','get','--as','user','--chat-id',c.chatId,'--format','json']);assert.equal(group.identity,'user');assert.equal(group.data.name,c.groupName);assert.equal(group.data.external,false);

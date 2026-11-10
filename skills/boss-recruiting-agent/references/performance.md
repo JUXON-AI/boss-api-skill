@@ -18,6 +18,23 @@ review回调由当前主代理的原生JUXON委派提供；库不包含模型鉴
 
 ## 自动校验与自然回复
 
+### 一次传齐材料，只返回JSON
+
+默认在主代理准备阶段调用仓库根入口：
+
+```
+node scripts/recruiting-review.mjs prepare <single-person-packet.json> <new-request.json>
+node scripts/recruiting-review.mjs check <request.json> <raw-model-response.json> <new-check.json>
+```
+
+packet沿当前单人材料格式：candidate含uid/name/jobId，jobProfile、formalRecord及canonical formalRecordSHA（新真实R0可为null）、完整可重算history。本人PDF正文放documents数组，每项id/uid/jobId/identityVerified/text/textSha256，不能只给路径让代理另找附件。source/sourceByteSHA存在时核真实文件字节；历史、岗位及原record全文不裁剪。已到手简历先合并，后到的新正文仍用新版本复核，不覆盖旧稿。
+
+prepare核材料后生成绑定与request.message。主代理编排代码读取message并直接传给原生单人JUXON；不要打印成截断终端输出后让代理补读，也不要把整个request再套入提示词（packet与message会重复）。代理只读提示内材料、不用工具、不写文件、不手算SHA，返回固定review JSON。主代理保存原始响应再check；固定JSON约束内部提案，候选人正文仍逐人自然起草，不强套同一话术。
+
+check一次返回全部结构/引文/原分保持/轮次/数值门槛错误。pass明确是建议入库；hold是暂缓，绝非英文pass的“跳过”。原稿和错误保留，再只修有证据的字段，不自动改分、不执行sender。check.valid只代表机械检查通过，semanticReviewRequired与mainApprovalRequired始终true；精确引文存在不代表语义足够，主验仍核问答对应、合并接受、学校/Go/AI实际含义及实时HR语料。check不会创建evaluation/正式proposal/审批或更新CAS，后续仍走原提案校验与独立主验。
+
+尽量不在每轮临时编写按UID分支的运行代码；采用既有runner、已验收阶段模板和数据文件。单人格式失败留证并隔离，其他人的复核与串行操作继续。已审确认、暂停、已有HR和精确已处理mid先过滤，无新增技术不反复评分；4并行先保持，不用增加并发掩盖单人反复读写。
+
 `proposal_validation.mjs`只做纯校验：正式record、确定性评分/合法state、身份、真实轮次、当前CAS、岗位及完整history指纹、本人精确引文、暂停/人工接续、HR必须有Base读回。程序从实际UTF8生成正文SHA，不让代理手填哈希。
 
 仓库根CLI：
@@ -36,6 +53,8 @@ CLI读取真实岗位文件字节，canonical record SHA与岗位文件字节SHA
 
 ## 只读连接复用与增量观察
 
+先检查当前账号服务暂停与用户是否启用定时/后台观察。下述命令仅描述能力，不表示安装或同步后应启动；账号异常期间不做在线探测。离线复核不受此限制，但恢复后的真实操作仍需新鲜完整history。
+
 仓库`scripts/readonly-session.mjs`仅暴露contacts/history，复用一个已核Inspector连接和登录检查；没有send、任意bridge或eval入口。连接有时间/请求数上限，失败后不在同连接重放；每次history仍绑定本轮刚核的联系人，并要求完整/唯一mid/双方身份。
 
 `scripts/incremental_observer.mjs`依据正常SDK联系人元数据规划history读取，只读取变化、新招呼或TTL到期对象。metadata不是新回复证明，真正新mid还要完整history核验。checkpoint只存身份/指纹/mid/成功时间；不完整、失败不推进。同job+UID不同姓名冲突不合并，学校/能力不由metadata推断。
@@ -49,7 +68,7 @@ node scripts/recruiting-observer.mjs once <private-observer-config.json>
 node scripts/recruiting-observer.mjs watch <private-observer-config.json>
 ```
 
-观察器按配置间隔（默认60秒）只读检查，保存受保护完整快照和events待主审队列。新招呼单独标记，先按既有授权登记身份，不能直接塞旧冻结scope或自动发送。它不是已经验证的服务端推送事件监听，也不替代原4小时全面巡检、旧ack观察、历史范围外覆盖与主动简历接续。
+观察器按配置间隔（默认60秒）只读检查，保存受保护完整快照和events待主审队列。新招呼单独标记，先按既有授权登记身份，不能直接塞旧冻结scope或自动发送。它不是已经验证的服务端推送事件监听，也不替代用户当前设定间隔的全面巡检、旧ack观察、历史范围外覆盖与主动简历接续。
 
 观察低优先级：遇工作流/runner/发送锁让路，短批次后释放Inspector。前台只等待本实现标记且PID仍活跃的有界只读观察连接释放；等待仅发生在锁获取，绝不重试sender/SDK。其他锁仍保留原失败规则，不能删除或猜测清理。
 
@@ -68,3 +87,4 @@ events仅表示待核增量，不表示已回复/已入库。下一主代理轮�
 - `performance_benchmark.mjs`比较相同合成review延迟下批末屏障与逐人流水线，分别报告首项/总时长；不能当真实BOSS回复速度。
 - 仓库`scripts/recruiting-read-benchmark.mjs`在无其他工作流时对同一联系人页做少量只读对比，交替隔离/复用顺序；只保存聚合计时，不发消息、不读候选history、不写Base。
 - 真实端到端回复速度须等待自然新任务，记录发现/完整读取/复核/主验排队/发送及读回/入库各阶段。无自然发送样本就明确未实测，不发无内容测试消息，也不减少原门禁制造指标。
+- 代理统计同时报告单人中位耗时、累计代理时长、至少一人活跃的墙钟区间、最大并发、命令/失败次数及离线修正次数。复核和主验/发送可重叠，不能把各段时长简单相加当总时长；一对虚构样例的模型测试不外推整轮同比提速。

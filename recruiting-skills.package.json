@@ -1,6 +1,6 @@
 {
   "name": "boss-recruiting-skills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "BOSS招聘持续跟进本地skills集合；本清单不注册插件或执行安装",
   "entrypoint": "boss-recruiting-followup",
   "skills": [
@@ -15,7 +15,7 @@
     "boss-recruiting-audit"
   ],
   "layout": "skills/<name>/SKILL.md",
-  "installation": "Copy all listed skill directories as siblings into the Codex skills root; keep shared relative references intact.",
+  "installation": "Copy all listed skill directories and implementationSkill as siblings into the Codex skills root; keep shared relative references intact. Execute helpers from the workspace repository with its original scripts/skills layout.",
   "containsPrivateTaskData": false,
   "implementationSkill": "skills/boss-recruiting-agent",
   "technicalSkill": "SKILL.md"

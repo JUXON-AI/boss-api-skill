@@ -191,6 +191,7 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
 
     bindingSha256 = safeHash({
       candidate: packetCandidate,
+      ...(packet?.documentReplies ? {documentRepliesSha256: safeHash(packet.documentReplies)} : {}),
       claimed: {
         recordSha256: packet?.recordSha256,
         jobProfileSha256: packet?.jobProfileSha256,
@@ -360,8 +361,8 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
       && proposal.nextRecord?.next_round === 0 && proposal.nextRecord?.communication?.round === 0
       && safeHash(currentRecord.score) === safeHash(proposal.nextRecord.score)
       && latestPermission.direction === 'in' && isOrdinaryText(permissionMessage)
-      && /(?:可以|能|方便|可否|是否)/u.test(permissionMessage.body.text)
-      && /(?:发.{0,8}简历|简历.{0,8}发)/u.test(permissionMessage.body.text)
+      && /(?:可以|能|方便|可否|是否|(?<!不)需要发.{0,8}简历.{0,8}[吗嘛])/u.test(permissionMessage.body.text)
+      && /(?:发.{0,8}简历|简历.{0,8}发|(?:看一下|看看).{0,8}简历|简历.{0,8}(?:看一下|看看))/u.test(permissionMessage.body.text)
       && proposal.citations?.some(citation => midKey(citation.mid) === midKey(permissionMessage.mid))
       && !messages.some(message => message.from?.uid !== packetCandidate?.uid && isOrdinaryText(message));
     if (TERMINAL_STATES.has(currentRecord?.state) && !firstResumePermission) {
@@ -397,8 +398,31 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
         }
         const replies = messages.filter(m => m.from?.uid === packetCandidate?.uid && isOrdinaryText(m)
           && lastOut && compareTimeAndMid(m, lastOut) > 0);
-        if (!replies.length) addError(errors, 'round2_requires_candidate_reply', 'Round two requires a real candidate text after the last actual outbound');
-        if (!Array.isArray(proposal.citations) || !proposal.citations.some(c => replies.some(m => String(m.mid) === String(c.mid)))) {
+        // A received, identity-bound resume is also a reply. A request/card alone
+        // is not: retain the accepted request, later delivery and exact body citation.
+        let documentReply = false;
+        for (const doc of Array.isArray(packet.documentReplies) ? packet.documentReplies : []) {
+          const request = messages.find(m => midKey(m.mid) === midKey(doc?.requestMid));
+          const delivery = messages.find(m => midKey(m.mid) === midKey(doc?.deliveryMid));
+          const bound = isObject(doc) && typeof doc.id === 'string' && !!doc.id
+            && sameCandidate(packetCandidate, doc.candidate) && doc.identityVerified === true
+            && isHex(doc.fileSha256) && isHex(doc.textSha256)
+            && typeof doc.text === 'string' && !!doc.text.trim() && hash(doc.text) === doc.textSha256
+            && request?.from?.uid === packetCandidate?.uid && request?.to?.uid === lastOut?.from?.uid
+            && request?.body?.type === 7 && request?.body?.dialog?.operated === true
+            && delivery?.from?.uid === packetCandidate?.uid && delivery?.to?.uid === lastOut?.from?.uid
+            && delivery?.body?.type === 12 && isObject(delivery?.body?.hyperLink)
+            && lastOut && compareTimeAndMid(delivery, lastOut) > 0
+            && compareTimeAndMid(delivery, request) > 0;
+          const cited = bound && Array.isArray(proposal.documentCitations)
+            && proposal.documentCitations.some(c => c?.documentId === doc.id
+              && c.fileSha256 === doc.fileSha256 && c.textSha256 === doc.textSha256
+              && typeof c.quote === 'string' && !!c.quote.trim() && doc.text.includes(c.quote));
+          if (!bound || !cited) addError(errors, 'round2_document_reply_invalid', 'Resume reply requires matched identity, accepted request, later delivery, body hash and exact document citation');
+          else documentReply = true;
+        }
+        if (!replies.length && !documentReply) addError(errors, 'round2_requires_candidate_reply', 'Round two requires candidate text or a verified received resume after the last actual outbound');
+        if (!documentReply && (!Array.isArray(proposal.citations) || !proposal.citations.some(c => replies.some(m => String(m.mid) === String(c.mid))))) {
           addError(errors, 'round2_requires_reply_citation', 'Round two must quote at least one actual candidate reply after the last outbound');
         }
       }

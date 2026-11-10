@@ -123,6 +123,29 @@ test('unknown-base first resume permission is policy only and retains every scre
     proposal: proposal({kind: 'policy', text: '可以，直接在BOSS上发就行。', expectedRecordSha256: cas,
       expectedHistorySha256: sha, citations: [{mid: 1, quote: own[0].body.text}], nextRecord: structuredClone(current)})});
   assert.equal(validateProposal(value).valid, true);
+  for (const [text, expected] of [
+    ['能把我的简历让您看一下吗？', true],
+    ['方便看看我的简历吗？', true],
+    ['你好 可立刻到岗 一周5天 实习6个月以上 需要发一份简历看看嘛', true],
+    ['需要发简历吗？', true],
+    ['不需要发简历', false],
+    ['需要的简历已经发过了', false],
+    ['简历已经看过了', false],
+    ['能看看岗位要求吗？', false],
+  ]) {
+    const changed = structuredClone(value);
+    changed.packet.history.messages[0].body.text = text;
+    const updatedHistory = historyFingerprint(changed.packet.history.messages);
+    changed.packet.history.sha256 = updatedHistory;
+    changed.currentRecord.history.sha256 = updatedHistory;
+    changed.proposal.nextRecord.history.sha256 = updatedHistory;
+    const updatedCas = canonicalJsonSha256(changed.currentRecord);
+    changed.packet.recordSha256 = updatedCas;
+    changed.proposal.expectedRecordSha256 = updatedCas;
+    changed.proposal.expectedHistorySha256 = updatedHistory;
+    changed.proposal.citations = [{mid: 1, quote: text}];
+    assert.equal(validateProposal(changed).valid, expected, text);
+  }
   for (const mutate of [
     v => { v.packet.safety.blocked = true; },
     v => { v.packet.safety.humanConversationHold = true; },
@@ -622,4 +645,52 @@ test('substantive round two enforces deterministic ability, coverage and signal 
   }));
   assert.equal(roundOne.valid, true, JSON.stringify(roundOne.errors));
   assert.ok(!codes(roundOne).some(code => code.startsWith('round2_')));
+});
+
+function attachedResumeRoundTwoFixture() {
+  const own = [structuredClone(messages[0]), structuredClone(messages[1]),
+    {mid: 4, time: 4, from: {uid: UID}, to: {uid: 900}, body: {type: 7, dialog: {operated: true}}},
+    {mid: 5, time: 5, from: {uid: UID}, to: {uid: 900}, body: {type: 12, hyperLink: {text: '附件简历'}}}];
+  const sha = historyFingerprint(own);
+  const current = record({history: {...record().history, sha256: sha, last_mid: 5}});
+  const doc = {id: 'resume', candidate: {uid: UID, name: 'Candidate A', boss_job_id: JOB_ID},
+    requestMid: 4, deliveryMid: 5, identityVerified: true, fileSha256: 'a'.repeat(64),
+    text: '本人实现异步后端服务和回归测试', textSha256: hash('本人实现异步后端服务和回归测试')};
+  return input({currentRecord: current,
+    packet: packet({recordSha256: canonicalJsonSha256(current), history: {complete: true, messages: own, sha256: sha}, documentReplies: [doc]}),
+    proposal: proposal({expectedRecordSha256: canonicalJsonSha256(current), expectedHistorySha256: sha,
+      nextRecord: {...structuredClone(current), state: 'ready_for_contact'},
+      citations: [], documentCitations: [{documentId: 'resume', fileSha256: doc.fileSha256, textSha256: doc.textSha256, quote: '异步后端服务'}]})});
+}
+test('verified resume reply permits round two without inventing candidate text', () => {
+  const value = attachedResumeRoundTwoFixture();
+  const result = validateProposal(value);
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+for (const [label, mutate] of [
+  ['foreign UID', v => { v.packet.documentReplies[0].candidate.uid = 999; }],
+  ['foreign job', v => { v.packet.documentReplies[0].candidate.boss_job_id = 'other'; }],
+  ['foreign name', v => { v.packet.documentReplies[0].candidate.name = 'Other'; }],
+  ['unverified identity', v => { v.packet.documentReplies[0].identityVerified = false; }],
+  ['wrong source text hash', v => { v.packet.documentReplies[0].textSha256 = 'b'.repeat(64); }],
+  ['wrong original PDF hash', v => { v.proposal.documentCitations[0].fileSha256 = 'b'.repeat(64); }],
+  ['missing exact quote', v => { v.proposal.documentCitations[0].quote = '不存在的技术'; }],
+  ['missing document citation', v => { v.proposal.documentCitations = []; }],
+  ['unaccepted request', v => { v.packet.history.messages[2].body.dialog.operated = false; }],
+  ['plain card is not delivery', v => { v.packet.history.messages[3].body = {type: 7}; }],
+  ['no delivery source', v => { v.packet.documentReplies[0].deliveryMid = 99; }],
+  ['old delivery', v => { v.packet.history.messages[3].time = 0; }],
+]) test('verified resume reply rejects ' + label, () => {
+  const value = attachedResumeRoundTwoFixture(); mutate(value);
+  assert.equal(validateProposal(value).valid, false);
+});
+
+test('verified resume reply binding changes with the bound document source', () => {
+  const value = attachedResumeRoundTwoFixture();
+  const before = validateProposal(value);
+  value.packet.documentReplies[0].fileSha256 = 'd'.repeat(64);
+  value.proposal.documentCitations[0].fileSha256 = 'd'.repeat(64);
+  const after = validateProposal(value);
+  assert.equal(after.valid, true);
+  assert.notEqual(before.bindingSha256, after.bindingSha256);
 });
