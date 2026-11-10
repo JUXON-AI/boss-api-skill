@@ -3,6 +3,12 @@
   "title": "BOSS recruiting candidate record",
   "type": "object",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {"required": ["screening_policy"]},
+      "then": {"properties": {"job_fit": {"required": ["conditions"]}}}
+    }
+  ],
   "required": [
     "schema_version",
     "policy_version",
@@ -378,8 +384,57 @@
             "partial",
             "conflict"
           ]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "status",
+              "evidence"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "confirmed",
+                  "unknown",
+                  "conflict"
+                ]
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "source",
+                    "quote"
+                  ],
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
+    },
+    "screening_policy": {
+      "$ref": "job-screening-policy.schema.json"
     }
   }
 }

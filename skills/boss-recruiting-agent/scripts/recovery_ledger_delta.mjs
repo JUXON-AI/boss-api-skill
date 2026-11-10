@@ -224,9 +224,10 @@ function validateSendPath({beforeRecord, afterRecord, sendEvidence, recruiterUid
     }
   } else {
     if (beforeRecord.communication.round !== 1) fail('round 2 requires a true round 1 baseline');
-    if (!(afterRecord.score.ability_base_score >= 60)) fail('round 2 requires ability_base_score at least 60');
-    if (!(afterRecord.score.evidence_coverage_percent >= 70)) fail('round 2 requires evidence coverage at least 70');
-    if (!(afterRecord.score.final_signal_score >= 65)) fail('round 2 requires final signal score at least 65');
+    const thresholds = afterRecord.screening_policy?.thresholds ?? {ability_base: 60, coverage: 70, signal: 65};
+    if (!(afterRecord.score.ability_base_score >= thresholds.ability_base)) fail(`round 2 requires ability_base_score at least ${thresholds.ability_base}`);
+    if (!(afterRecord.score.evidence_coverage_percent >= thresholds.coverage)) fail(`round 2 requires evidence coverage at least ${thresholds.coverage}`);
+    if (!(afterRecord.score.final_signal_score >= thresholds.signal)) fail(`round 2 requires final signal score at least ${thresholds.signal}`);
   }
 
   if (!isObject(approval)) fail('sendEvidence.approval must be an object');
@@ -305,6 +306,7 @@ export function verifyRecoveryDelta(input) {
 
   const before = validatedRecord(beforeRecord, 'beforeRecord');
   const after = validatedRecord(afterRecord, 'afterRecord');
+  if (!sameCanonical(before.screening_policy ?? null, after.screening_policy ?? null)) fail('recovery delta cannot migrate the job screening policy');
   const uid = before.candidate.uid;
 
   matchingWhitelistEntry(allowedCandidates, before, jobId);

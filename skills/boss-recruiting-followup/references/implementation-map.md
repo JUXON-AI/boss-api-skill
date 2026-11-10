@@ -5,6 +5,7 @@
 | 模块 | 工作区已有实现/引用 |
 | --- | --- |
 | 客户端 | 仓库根SKILL.md声明的boss-desktop-api及对应平台验收；scripts/boss.mjs |
+| config | 项目scripts/job_policy.mjs；assets/job-screening-policy.schema.json及设计/人事样例；每岗位私有scope/授权/表与群映射 |
 | collect | 私有任务入口指定且已验收的collector/poller；项目references/continuous-followup.md |
 | review | scripts/scoring.mjs、recruiting-review.mjs；项目scripts/offline_review.mjs、candidate_ledger.mjs、validate_contracts.mjs；references/scoring-and-messaging.md、candidate-ledger.md |
 | message | scripts/boss.mjs send、当前scope runner及源码SHA验收；项目references/scoring-and-messaging.md |

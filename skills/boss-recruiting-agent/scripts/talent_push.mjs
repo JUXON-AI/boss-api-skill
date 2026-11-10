@@ -1,4 +1,6 @@
 import {createHash} from 'node:crypto';
+import {validateJobPolicy} from './job_policy.mjs';
+import {canonicalJsonSha256} from './candidate_ledger.mjs';
 
 const ALLOWED_STATES = new Set(['ai_screened_pass', 'hr_review']);
 const REDACTION = '［联系方式已脱敏］';
@@ -230,15 +232,27 @@ export function buildTalentPush(input) {
     readField(screening, 'finalSignalScore', 'screening.finalSignalScore'),
     'screening.finalSignalScore',
   );
-  if (abilityBaseScore < 60) fail('screening.abilityBaseScore must be at least 60');
-  if (evidenceCoveragePercent < 70) fail('screening.evidenceCoveragePercent must be at least 70');
-  if (finalSignalScore < 65) fail('screening.finalSignalScore must be at least 65');
+  const rolePolicy = readOptionalField(screening, 'policy', 'screening.policy');
+  const expectedPolicy = readOptionalField(expected, 'policy', 'expected.policy');
+  if (rolePolicy || expectedPolicy) {
+    if (!rolePolicy || !expectedPolicy || canonicalJsonSha256(rolePolicy) !== canonicalJsonSha256(expectedPolicy)) fail('role policy must match configured expected policy');
+    validateJobPolicy(rolePolicy, {boss_job_id: candidateJobId});
+    if (!rolePolicy.approved) fail('role policy is not approved');
+  }
+  const thresholds = rolePolicy?.thresholds ?? {ability_base: 60, coverage: 70, signal: 65};
+  if (abilityBaseScore < thresholds.ability_base) fail(`screening.abilityBaseScore must be at least ${thresholds.ability_base}`);
+  if (evidenceCoveragePercent < thresholds.coverage) fail(`screening.evidenceCoveragePercent must be at least ${thresholds.coverage}`);
+  if (finalSignalScore < thresholds.signal) fail(`screening.finalSignalScore must be at least ${thresholds.signal}`);
+  const requiredKeys = rolePolicy?.conditions.filter(c => c.required).map(c => c.key);
   assertEqual(
     readField(screening, 'conditionsConfirmed', 'screening.conditionsConfirmed'),
-    6,
-    'screening.conditionsConfirmed must equal 6',
+    requiredKeys?.length ?? 6,
+    requiredKeys ? 'screening.conditionsConfirmed must equal required conditions count' : 'screening.conditionsConfirmed must equal 6',
   );
-  assertEqual(
+  if (requiredKeys) {
+    const confirmed = readField(screening, 'confirmedConditionKeys', 'screening.confirmedConditionKeys');
+    if (!Array.isArray(confirmed) || JSON.stringify([...confirmed].sort()) !== JSON.stringify([...requiredKeys].sort())) fail('required role condition keys differ');
+  } else assertEqual(
     readField(screening, 'aiCodingConfirmed', 'screening.aiCodingConfirmed'),
     true,
     'screening.aiCodingConfirmed must be true',
@@ -317,7 +331,7 @@ export function buildTalentPush(input) {
           '筛选结果：',
           `基础 ${abilityBaseScore} / 证据覆盖 ${evidenceCoveragePercent}% / 综合信号 ${finalSignalScore}`,
         ),
-        labelledLine('技术自述（候选人自述，未经独立核验）：', safeTechnicalSummary),
+        labelledLine(rolePolicy ? '能力自述（候选人自述，未经独立核验）：' : '技术自述（候选人自述，未经独立核验）：', safeTechnicalSummary),
         labelledLine('薪资：', salary),
         labelledLine('到岗：', arrival),
         [text('6项现实条件已确认；有本人AI辅助编程实践自述')],

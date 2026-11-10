@@ -5,11 +5,11 @@ description: 将正式通过筛选且条件明确的候选人写入飞书人才�
 
 # 人才入库与交接
 
-先读[公共契约](../boss-recruiting-followup/references/common-contract.md)、[实现映射](../boss-recruiting-followup/references/implementation-map.md)，真实飞书操作再读已安装lark-base skill及当前CLI帮助。输入为正式record、通过的独立evaluation、六条件/岗位硬要求本人证据、schema配置、现有Base/交接回执。
+先读[公共契约](../boss-recruiting-followup/references/common-contract.md)、[实现映射](../boss-recruiting-followup/references/implementation-map.md)，真实飞书操作再读已安装lark-base skill及当前CLI帮助。输入为正式record、通过的独立evaluation、当前岗位全部required条件与硬要求本人证据、岗位人才表/schema配置、现有Base/交接回执，不固定为原实习岗六条件。
 
 ## 门禁与防重
 
-- 当前岗位后续新入库还须按[Go转向规则](../boss-recruiting-followup/references/go-transition.md)核本人接受Go开发及从零学习安排；已入库记录不追溯重建或补发通知。
+- 仅旧任务明确启用或当前岗位配置Go转向时，按[Go转向规则](../boss-recruiting-followup/references/go-transition.md)核本人接受安排；其他岗位不增加此门槛。已入库记录不追溯重建或补发通知。
 
 - 当前确定性基础/覆盖/信号门槛及岗位硬要求全部通过，必需现实条件明确，正式record校验为ai_screened_pass才允许新增。阈值/地址/预算从当前批准配置读取；有分数不代表入库通过。
 - 已有人才行、hr_review、existing_entry_identity_verified或bossHandoffSent按各自真实证据接续，不重建、不补旧交接。历史既有身份核实不冒称本轮实际入库/发通知。暂停未发项不因已有Base自动恢复。

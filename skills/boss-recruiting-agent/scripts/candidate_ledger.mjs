@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {ABILITY_DIMENSION_WEIGHTS, SCORING_POLICY_VERSION, scoreInternship} from '../../../scripts/scoring.mjs';
+import {SCORING_POLICY_VERSION} from '../../../scripts/scoring.mjs';
+import {validateJobPolicy, legacyJobPolicy, jobPolicyVersion, scoreForJob} from './job_policy.mjs';
 
 const STATES = new Set([
   'ready_for_contact', 'needs_more_info', 'awaiting_candidate_reply',
@@ -38,6 +39,10 @@ function writeJsonAtomic(file, value) {
 export function upsertCandidateRecord(root, record, options = {}) {
   validateCandidateRecord(record);
   if (options.jobProfilePath && fileSha(options.jobProfilePath) !== record.job.job_profile_sha256) fail('job profile SHA-256 changed; re-review before updating the candidate record');
+  if (options.jobProfilePath) {
+    const raw = readJson(options.jobProfilePath), profile = raw.job ?? raw;
+    if (jsonSha(profile.screening_policy ?? null) !== jsonSha(record.screening_policy ?? null)) fail('job profile and record screening policy differ');
+  }
   const target = locate(root, record.job.boss_job_id, record.candidate.uid);
   const exists = fs.existsSync(target);
   if (exists && !options.expectedSha256) fail('updating an existing candidate record requires --expected-sha256');
@@ -53,7 +58,8 @@ export function upsertCandidateRecord(root, record, options = {}) {
 export function validateCandidateRecord(record) {
   if (!isObject(record)) fail('candidate record must be an object');
   if (record.schema_version !== 1) fail('schema_version must be 1');
-  if (record.policy_version !== SCORING_POLICY_VERSION) fail(`policy_version must be ${SCORING_POLICY_VERSION}`);
+  const policy = record.screening_policy ? validateJobPolicy(record.screening_policy, record.job) : legacyJobPolicy();
+  if (record.policy_version !== jobPolicyVersion(policy)) fail(`policy_version must be ${jobPolicyVersion(policy)}`);
   if (!isHex(record.job?.job_profile_sha256)) fail('job.job_profile_sha256 must be SHA-256');
   if (typeof record.job?.boss_job_id !== 'string' || !record.job.boss_job_id) fail('job.boss_job_id is required');
   if (!Number.isSafeInteger(record.candidate?.uid) || record.candidate.uid < 1) fail('candidate.uid is invalid');
@@ -86,7 +92,7 @@ export function validateCandidateRecord(record) {
   if (record.history.last_direction === 'in' && record.communication.pending_inbound_mids.length === 0 && noReplyRequired === undefined) fail('inbound-last history requires at least one pending inbound mid or no_reply_required');
   if (record.history.last_direction !== 'in' && record.communication.pending_inbound_mids.length !== 0) fail('pending inbound mids require history.last_direction=in');
 
-  const calculated = scoreInternship(record.score.dimensions, {
+  const calculated = scoreForJob(record.score.dimensions, policy, {
     competitions: record.score.competitions,
     githubProjects: record.score.github_projects,
   });
@@ -112,12 +118,27 @@ export function validateCandidateRecord(record) {
   }
   if (!['unknown', 'pass', 'partial', 'conflict'].includes(record.job_fit?.hard_condition_status)) fail('job_fit.hard_condition_status is invalid');
   if (record.job_fit?.score !== null && (!Number.isFinite(record.job_fit?.score) || record.job_fit.score < 0 || record.job_fit.score > 100)) fail('job_fit.score must be null or 0..100');
-  if (record.state === 'ai_screened_pass') {
-    if (calculated.abilityBaseScore === null || calculated.abilityBaseScore < 60) fail('ai_screened_pass requires ability_base_score >= 60');
-    if (calculated.evidenceCoveragePercent < 70) fail('ai_screened_pass requires evidence coverage >= 70');
-    if (calculated.finalSignalScore === null || calculated.finalSignalScore < 65) fail('ai_screened_pass requires final_signal_score >= 65');
+  if (!policy.legacy) {
+    const conditions = record.job_fit?.conditions;
+    if (!Array.isArray(conditions) || conditions.length !== policy.conditions.length
+      || new Set(conditions.map(c => c?.key)).size !== policy.conditions.length) fail('role conditions must match the configured keys');
+    for (const c of conditions) {
+      if (!policy.conditions.some(p => p.key === c?.key) || !['confirmed', 'unknown', 'conflict'].includes(c.status)
+        || !Array.isArray(c.evidence)) fail('invalid role condition');
+      if (c.status !== 'unknown' && (!c.evidence.length || c.evidence.some(e => !record.sources.includes(e?.source)
+        || typeof e?.quote !== 'string' || !e.quote.trim()))) fail('role conditions require sourced exact quotations');
+    }
+    if ((record.next_round > 0 || ['ai_screened_pass', 'hr_review'].includes(record.state)) && !policy.approved) fail('job screening policy is not approved');
+    if (record.communication.round > policy.max_substantive_rounds || record.next_round > policy.max_substantive_rounds) fail('role substantive round limit exceeded');
+    if (['ai_screened_pass', 'hr_review'].includes(record.state) && policy.conditions.some(c => c.required
+      && !conditions.some(v => v.key === c.key && v.status === 'confirmed'))) fail('required role condition is not confirmed');
+  }
+  if (record.state === 'ai_screened_pass' || (!policy.legacy && record.state === 'hr_review')) {
+    if (calculated.abilityBaseScore === null || calculated.abilityBaseScore < policy.thresholds.ability_base) fail(`ai_screened_pass requires ability_base_score >= ${policy.thresholds.ability_base}`);
+    if (calculated.evidenceCoveragePercent < policy.thresholds.coverage) fail(`ai_screened_pass requires evidence coverage >= ${policy.thresholds.coverage}`);
+    if (calculated.finalSignalScore === null || calculated.finalSignalScore < policy.thresholds.signal) fail(`ai_screened_pass requires final_signal_score >= ${policy.thresholds.signal}`);
     if (record.recommendation !== 'ready_for_hr' || record.next_round !== 0) fail('ai_screened_pass requires ready_for_hr and next_round=0');
-    if (record.job_fit?.hard_condition_status !== 'pass' || record.job_fit?.score === null || record.job_fit.score < 60) fail('ai_screened_pass requires passing job fit with score >= 60');
+    if (record.job_fit?.hard_condition_status !== 'pass' || record.job_fit?.score === null || record.job_fit.score < policy.thresholds.job_fit) fail(`ai_screened_pass requires passing job fit with score >= ${policy.thresholds.job_fit}`);
   }
   return {record, score: calculated};
 }
@@ -207,7 +228,7 @@ function main() {
     const rows = verifyLedger(options.dir);
     const index = {
       schema_version: 1,
-      policy_version: SCORING_POLICY_VERSION,
+      policy_version: rows.length ? (new Set(rows.map(r => r.record.policy_version)).size === 1 ? rows[0].record.policy_version : 'mixed-job-policies') : SCORING_POLICY_VERSION,
       generated_at: new Date().toISOString(),
       records: rows.map(({file, recordSha256, record}) => ({
         candidate_uid: record.candidate.uid,

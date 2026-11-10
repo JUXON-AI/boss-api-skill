@@ -1,5 +1,7 @@
 # Scoring and communication policy
 
+The fixed software/internship rubric and proof bonuses below are the legacy policy for existing tasks without screening_policy. New roles use the explicit [job configuration](../../boss-recruiting-followup/references/job-configuration.md), job_policy.mjs and their own labels, weights, thresholds and required conditions. The compatible engineering_habits storage key means professional methods/tools for nontechnical roles; do not require coding, Go, AI tools, GitHub or school logistics unless that role explicitly enables them. Existing scored records are not automatically migrated.
+
 ## Evidence hierarchy
 
 For internships, clarify capabilities through ordinary conversation: technologies, tools, personally owned features, and work the candidate can complete independently. Do not request code verification, exercises, benchmark results or validation materials. First messages start with “你好”, without prefixing a name.

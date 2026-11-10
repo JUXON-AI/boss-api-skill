@@ -1,10 +1,11 @@
 {
   "name": "boss-recruiting-skills",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "BOSS招聘持续跟进本地skills集合；本清单不注册插件或执行安装",
   "entrypoint": "boss-recruiting-followup",
   "skills": [
     "boss-recruiting-deepseek-harness",
+    "boss-recruiting-config",
     "boss-recruiting-followup",
     "boss-recruiting-collect",
     "boss-recruiting-review",

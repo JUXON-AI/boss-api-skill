@@ -5,6 +5,8 @@ description: 用 BOSS 已授权会话完成实习及全职招聘初筛、两轮�
 
 # BOSS 招聘流程
 
+跨部门、非技术岗和其他用工类型先使用[boss-recruiting-config](../boss-recruiting-config/SKILL.md)及[通用岗位政策](../boss-recruiting-followup/references/job-configuration.md)。本文件后续旧实习技术岗问法、固定评分及条件只作为无screening_policy的历史兼容流程；新岗位以显式policy为准，不默认继承旧门槛、软件证明加分或技术追问。
+
 使用 `$boss-desktop-api` 读取当前客户端事实，本 skill 负责岗位条件、沟通、初筛建议和飞书交接。实习和全职均适用；macOS Apple Silicon 和 Windows 11 x64 的技术操作仅做限定验证，具体范围以根目录 Windows 报告和 Mac 记录为准。Windows 已实测三个在线摘要及招呼分析、两轮沟通、评估、人才库待HR复核记录创建与回读、BOSS交接通知及独立回读的样本；不代表其他岗位、全量候选人、邮件、附件或后续面试录用全链路均已跑通。多人或长周期任务必须以每个候选人一条可校验的本地记录作为判断依据，不能依赖 Agent 对话记忆。
 
 ## 准备

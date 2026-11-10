@@ -5,6 +5,8 @@ description: 将已核验入库并完成交接的合格候选人通过获授权�
 
 # 人才群推送
 
+按当前岗位配置核门槛、required条件集合和精确目标群；新岗位不固定旧六条件、AI编码或同一个群。能力概述按实际岗位表述，非技术岗位不使用技术自述模板。配置不匹配或执行适配器未验收则暂停此阶段，不能借用旧岗位群推送脚本。
+
 先读[公共契约](../boss-recruiting-followup/references/common-contract.md)及[机器人实现映射](../boss-recruiting-followup/references/implementation-map.md)，必要时读lark-im skill。输入为用户明确授权的群/机器人配置、真实Base行、交接与最终联系readback、推荐registry和未完成attempt。
 
 1. 核指定群真实身份、机器人身份/配置及权限；Webhook和签名秘密仅留保护配置，不能写进skill、日志或压缩包。不把“发现一个群”当授权，不自行换群或联系人。

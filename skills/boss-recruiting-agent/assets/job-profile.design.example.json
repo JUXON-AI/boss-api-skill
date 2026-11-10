@@ -1,0 +1,91 @@
+{
+  "employment_type": "full_time",
+  "job_name": "示例视觉设计师",
+  "boss_job_id": "example-design",
+  "company": "示例公司，非真实政策",
+  "company_key": "example-company",
+  "department_key": "creative",
+  "location": "待HR确认",
+  "salary": "待HR确认",
+  "days_per_week": null,
+  "minimum_months": null,
+  "responsibilities": [
+    "根据需求完成视觉方案及迭代",
+    "说明本人设计决策与交付协作"
+  ],
+  "hard_requirements": [
+    "待用户确认实际岗位要求，不可直接用于联系"
+  ],
+  "scoring_weights": {
+    "core_role_skills": 40,
+    "project_depth": 30,
+    "engineering_habits": 20,
+    "learning_and_collaboration": 10
+  },
+  "message_policy": {
+    "max_substantive_rounds": 2,
+    "require_human_approval_before_send": true,
+    "require_fresh_history_before_send": true,
+    "allowed_channels": [
+      "BOSS"
+    ],
+    "may_promise_email": false,
+    "may_make_final_decision": false
+  },
+  "screening_policy": {
+    "schema_version": 1,
+    "id": "example-design",
+    "revision": "draft-1",
+    "company_key": "example-company",
+    "department_key": "creative",
+    "boss_job_id": "example-design",
+    "approved": false,
+    "max_substantive_rounds": 2,
+    "proof_bonus": "none",
+    "dimensions": {
+      "core_role_skills": {
+        "label": "视觉设计核心能力",
+        "weight": 40,
+        "rubric": "根据本人明确的视觉表达、排版与设计决策证据评价，不凭软件名判断水平"
+      },
+      "project_depth": {
+        "label": "本人设计案例与职责",
+        "weight": 30,
+        "rubric": "根据本人案例目标、具体工作、选择依据与迭代评价，不要求代码项目"
+      },
+      "engineering_habits": {
+        "label": "设计方法与工具习惯",
+        "weight": 20,
+        "rubric": "根据本人设计工具、规范、交付及修改流程评价，不要求AI编程"
+      },
+      "learning_and_collaboration": {
+        "label": "学习与跨职能协作",
+        "weight": 10,
+        "rubric": "仅本人明确的反馈处理、学习实践与协作证据计分"
+      }
+    },
+    "thresholds": {
+      "ability_base": 60,
+      "coverage": 70,
+      "signal": 65,
+      "job_fit": 60
+    },
+    "conditions": [
+      {
+        "key": "salary",
+        "label": "接受本岗位已确认的月薪范围",
+        "required": true
+      },
+      {
+        "key": "work_mode",
+        "label": "接受本岗位已确认的办公地点与方式",
+        "required": true
+      },
+      {
+        "key": "arrival",
+        "label": "明确到岗计划",
+        "required": true
+      }
+    ]
+  }
+}

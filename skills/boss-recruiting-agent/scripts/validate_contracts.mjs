@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import {validateJobPolicy} from './job_policy.mjs';
 
 const [type, file] = process.argv.slice(2);
 if (!type || !file) throw new Error('Usage: validate_contracts.mjs <job|manifest|approval|evaluation|record> <json-file>');
@@ -15,15 +16,18 @@ function isScore(item) { return item === null || (typeof item === 'number' && it
 function hasStrings(item) { return Array.isArray(item) && item.every(entry => typeof entry === 'string'); }
 
 if (type === 'job') {
-  assert(['internship', 'full_time', 'campus', 'general'].includes(value.employment_type), 'job.employment_type is invalid');
+  assert(['internship', 'full_time', 'campus', 'general', 'part_time', 'contract', 'other'].includes(value.employment_type), 'job.employment_type is invalid');
   for (const key of ['job_name', 'boss_job_id', 'location', 'salary']) assert(typeof value[key] === 'string' && value[key].length > 0, `job.${key} is required`);
-  assert(Number.isInteger(value.days_per_week) && value.days_per_week >= 1 && value.days_per_week <= 7, 'job.days_per_week must be 1..7');
-  assert(Number.isFinite(value.minimum_months) && value.minimum_months >= 0, 'job.minimum_months is invalid');
+  const role = value.screening_policy ? validateJobPolicy(value.screening_policy, value) : null;
+  if (role) assert(typeof value.company_key === 'string' && typeof value.department_key === 'string', 'explicit company and department keys are required');
+  assert((role && value.days_per_week === null) || (Number.isInteger(value.days_per_week) && value.days_per_week >= 1 && value.days_per_week <= 7), 'job.days_per_week must be 1..7, or null under an explicit role policy');
+  assert((role && value.minimum_months === null) || (Number.isFinite(value.minimum_months) && value.minimum_months >= 0), 'job.minimum_months is invalid');
   assert(hasStrings(value.responsibilities) && value.responsibilities.length > 0, 'job.responsibilities must be a non-empty string array');
   assert(hasStrings(value.hard_requirements), 'job.hard_requirements must be a string array');
   assert(isObject(value.scoring_weights), 'job.scoring_weights is required');
   const weights = value.scoring_weights;
   for (const key of ['core_role_skills', 'project_depth', 'engineering_habits', 'learning_and_collaboration']) assert(Number.isFinite(weights[key]) && weights[key] >= 0, `job.scoring_weights.${key} is invalid`);
+  if (role) for (const key of Object.keys(weights)) assert(weights[key] === role.dimensions[key]?.weight, 'scoring_weights differ from the role policy');
   assert(isObject(value.message_policy), 'job.message_policy is required');
   const policy = value.message_policy;
   assert(Number.isInteger(policy.max_substantive_rounds) && policy.max_substantive_rounds >= 1 && policy.max_substantive_rounds <= 2, 'max_substantive_rounds must be 1 or 2');

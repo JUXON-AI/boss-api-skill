@@ -1,5 +1,7 @@
 # Deterministic candidate ledger
 
+Explicit new-role records bind their screening_policy snapshot and role:id:revision policy_version, with sourced job_fit.conditions for that policy. The deterministic validator uses its configured weights and thresholds; legacy records without a policy snapshot retain the original formula. Policy changes require a separately reviewed migration, not a recovery delta or bulk rewrite. See [job configuration](../../boss-recruiting-followup/references/job-configuration.md).
+
 This workflow prevents long-running recruiting conversations from depending on an Agent's memory. The live BOSS history is the conversation fact source; one validated JSON record per `(boss_job_id, uid)` is the durable judgment source. The chat transcript, the batch report and an Agent's prior summary are never authoritative state.
 
 ## Source-of-truth order

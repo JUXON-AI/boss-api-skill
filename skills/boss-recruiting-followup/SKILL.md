@@ -9,10 +9,13 @@ description: BOSS招聘skills包总入口。接续已配置任务或定时轮询
 
 先读[公共契约](references/common-contract.md)，从用户工作区及私有任务入口读取最新指示、岗位/授权、scope/manifest、main-state及latestHeartbeat.source。只为未完成事项读对应record、回执和CONTINUE段落，不搬运整段批次历史。
 
+可用于不同公司、部门、岗位与用工类型。新增岗位先交[boss-recruiting-config](../boss-recruiting-config/SKILL.md)，按[岗位配置](references/job-configuration.md)绑定当前规则；不默认继承原后端实习岗的条件、评分、部门口径或推送群。
+
 ## 按当前动作加载
 
 | 当前需要 | 读取的skill | 交付物 |
 | --- | --- | --- |
+| 新公司、部门、岗位或岗位政策变更 | [boss-recruiting-config](../boss-recruiting-config/SKILL.md) | 有版本和来源的岗位配置与授权边界 |
 | 新招呼、新回复、真正漏回及覆盖补读 | [boss-recruiting-collect](../boss-recruiting-collect/SKILL.md) | 完整来源及未处理增量清单 |
 | 本人证据、评分、条件与离线草稿 | [boss-recruiting-review](../boss-recruiting-review/SKILL.md) | 主代理验收的单人提案 |
 | 实质问询、政策答复或真实入库后通知 | [boss-recruiting-message](../boss-recruiting-message/SKILL.md) | 唯一新增出站、独立读回与CAS |

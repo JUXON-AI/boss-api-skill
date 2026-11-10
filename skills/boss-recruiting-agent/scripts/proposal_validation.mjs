@@ -2,6 +2,7 @@ import {hash} from '../../../scripts/runtime.mjs';
 import {historyFingerprint} from '../../../scripts/runtime.mjs';
 import {projectHistory} from '../../../scripts/batch.mjs';
 import {canonicalJsonSha256, validateCandidateRecord} from './candidate_ledger.mjs';
+import {validateJobPolicy, legacyJobPolicy} from './job_policy.mjs';
 
 const HEX_SHA256 = /^[a-f0-9]{64}$/u;
 const KINDS = new Set(['substantive_round1', 'substantive_round2', 'policy', 'hr_handoff', 'hold']);
@@ -235,6 +236,12 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
     }
 
     const profileBody = jobProfileBody(jobProfile);
+    const rolePolicy = profileBody?.screening_policy ? validateJobPolicy(profileBody.screening_policy, profileBody) : legacyJobPolicy();
+    if (safeHash(currentRecord?.screening_policy ?? null) !== safeHash(profileBody?.screening_policy ?? null)
+      || safeHash(proposal?.nextRecord?.screening_policy ?? null) !== safeHash(profileBody?.screening_policy ?? null)) {
+      addError(errors, 'role_policy_mismatch', 'Formal/current/next role policy must match the actual job profile');
+    }
+    if (!rolePolicy.approved && proposal?.kind !== 'hold') addError(errors, 'role_policy_unapproved', 'Role policy must be approved before action');
     if (isObject(profileBody) && typeof profileBody.boss_job_id === 'string'
       && packetCandidate?.boss_job_id !== profileBody.boss_job_id) {
       addError(errors, 'candidate_job_profile_mismatch', 'packet.candidate.boss_job_id does not match jobProfile.boss_job_id');
@@ -378,8 +385,8 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
     const currentRound = currentRecord?.communication?.round;
     const nextRound = proposal?.nextRecord?.communication?.round;
     const profilePolicy = isObject(profileBody?.message_policy) ? profileBody.message_policy : {};
-    const maxSubstantiveRounds = Number.isInteger(profilePolicy.max_substantive_rounds)
-      ? profilePolicy.max_substantive_rounds : 2;
+    const maxSubstantiveRounds = Math.min(rolePolicy.max_substantive_rounds,
+      Number.isInteger(profilePolicy.max_substantive_rounds) ? profilePolicy.max_substantive_rounds : 2);
 
     if (proposal?.kind === 'substantive_round1' || proposal?.kind === 'substantive_round2') {
       const round = proposal.kind === 'substantive_round1' ? 1 : 2;
@@ -438,14 +445,14 @@ export function validateProposal({packet, proposal, currentRecord, jobProfile, j
         if (!['ready_for_contact', 'needs_more_info'].includes(proposal.nextRecord?.state)) addError(errors, 'next_record_state_mismatch', 'pre-send substantive decisions must use ready_for_contact or needs_more_info');
         if (proposal.nextRecord?.recommendation !== 'continue_contact') addError(errors, 'next_record_recommendation_mismatch', 'substantive proposals require recommendation=continue_contact');
         if (proposal.kind === 'substantive_round2') {
-          if (typeof proposal.nextRecord?.score?.ability_base_score !== 'number' || proposal.nextRecord.score.ability_base_score < 60) {
-            addError(errors, 'round2_ability_gate', 'substantive_round2 requires deterministic ability_base_score >= 60');
+          if (typeof proposal.nextRecord?.score?.ability_base_score !== 'number' || proposal.nextRecord.score.ability_base_score < rolePolicy.thresholds.ability_base) {
+            addError(errors, 'round2_ability_gate', `substantive_round2 requires deterministic ability_base_score >= ${rolePolicy.thresholds.ability_base}`);
           }
-          if (typeof proposal.nextRecord?.score?.evidence_coverage_percent !== 'number' || proposal.nextRecord.score.evidence_coverage_percent < 70) {
-            addError(errors, 'round2_coverage_gate', 'substantive_round2 requires evidence_coverage_percent >= 70');
+          if (typeof proposal.nextRecord?.score?.evidence_coverage_percent !== 'number' || proposal.nextRecord.score.evidence_coverage_percent < rolePolicy.thresholds.coverage) {
+            addError(errors, 'round2_coverage_gate', `substantive_round2 requires evidence_coverage_percent >= ${rolePolicy.thresholds.coverage}`);
           }
-          if (typeof proposal.nextRecord?.score?.final_signal_score !== 'number' || proposal.nextRecord.score.final_signal_score < 65) {
-            addError(errors, 'round2_signal_gate', 'substantive_round2 requires final_signal_score >= 65');
+          if (typeof proposal.nextRecord?.score?.final_signal_score !== 'number' || proposal.nextRecord.score.final_signal_score < rolePolicy.thresholds.signal) {
+            addError(errors, 'round2_signal_gate', `substantive_round2 requires final_signal_score >= ${rolePolicy.thresholds.signal}`);
           }
         }
       }

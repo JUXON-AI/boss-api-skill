@@ -9,7 +9,7 @@ description: 根据本人完整BOSS历史或身份绑定简历离线复核能力
 
 ## 单人离线委派
 
-当前岗位另按[Go转向与实践信号](../boss-recruiting-followup/references/go-transition.md)记录Go能力与学习意愿。具体实践才是正向能力项，“了解/愿意学”不加分；未经配置不自定数值权重。
+先读[岗位配置](../boss-recruiting-followup/references/job-configuration.md)的本岗维度、门槛与conditions。仅旧任务明确启用或新岗位配置Go条件时，按[Go转向与实践信号](../boss-recruiting-followup/references/go-transition.md)记录Go能力与学习意愿；非技术岗不默认追问编程。具体实践才是正向能力项，“了解/愿意学”不加分；未经配置不自定数值权重。
 
 按用户当前宿主与分工指定离线复核；原Codex任务可使用JUXON ccs-juxon/deepseek-flash，用户选定Harness时按[宿主适配](../boss-recruiting-followup/references/deepseek-harness.md)使用其隔离子代理或主代理逐人复核。每名只拿本人材料，不读别人资料、不操作服务、不改正式record。返回独立review、必要evaluation、原话/疑问、facts变更与自然草稿；主代理核原始字节和证据后验收。工具不可用时如实说明实际分工，不擅自跨宿主转交或把未复核当通过。
 
@@ -23,7 +23,7 @@ description: 根据本人完整BOSS历史或身份绑定简历离线复核能力
 - 实习从岗位配置核薪资、具体现场、出勤、最低周期、学校可行及到岗计划。学校直接方便/允许/已有明确外出安排够用，无课、届别、离校不推许可；不增“offer前全手续完成/证明”门槛。
 - 到岗资料卡只沿本人body.resume.applyStatus及mid/job原来源；保留本人面试/offer前提，手续时长不改到岗时长，不添加年份、最晚到岗日或一周期限。待遇/面试询问未设为接受前提则不新增硬门槛。
 - 岗位要求AI辅助编码时须本人直接工具/实践自述；Agent/RAG业务不自动证明编码能力。自述不冒称独立验证，不用性别年龄学校档次筛选，不索代码验证。
-- 本人使用Claude Code时，按[账号追问与加分规则](../boss-recruiting-followup/references/claude-code-account.md)区分中转站/本人官方账号/组织共享/未知。本人官方账号单列用户偏好正向项并绑定原话，不能当能力已验证或混入竞赛/GitHub分；未配置数值不手填加分，不改变两轮上限。
+- 仅本岗已启用Claude账号偏好且本人使用Claude Code时，按[账号追问与加分规则](../boss-recruiting-followup/references/claude-code-account.md)区分中转站/本人官方账号/组织共享/未知。本人官方账号单列用户偏好正向项并绑定原话，不能当能力已验证或混入竞赛/GitHub分；未配置数值不手填加分，不改变两轮上限。
 
 ## 评分与轮次
 

@@ -18,7 +18,7 @@ const scalar=value=>Array.isArray(value)?value[0]:value;
 const safeUid=value=>{const s=String(value);assert.match(s,/^[1-9]\d*$/);assert.ok(Number.isSafeInteger(Number(s)));return s;};
 
 /** Admission may bind availability to an identity-verified original PDF. */
-export function assertTalentGateEvidence(gate,{messages,uid,jobId,ownBossUid,approvedDocumentEvidence,documentBytes,textBytes}){
+export function assertTalentGateEvidence(gate,{messages,uid,jobId,ownBossUid,approvedDocumentEvidence,documentBytes,textBytes,requiredKeys}){
   assert.ok(typeof gate.quote==='string'&&gate.quote.trim(),'empty gate quote');
   if(gate.sourceType==='document'){
     assert.ok(['onsite_days','duration','arrival'].includes(gate.condition),'document cannot replace other gate acceptance');
@@ -26,7 +26,7 @@ export function assertTalentGateEvidence(gate,{messages,uid,jobId,ownBossUid,app
     assert.equal(String(approvedDocumentEvidence.uid),String(uid));
     assert.equal(approvedDocumentEvidence.documentIdentityVerified,true);
     assert.equal(approvedDocumentEvidence.documentTextSHA,gate.textSha256);
-    const approved=normalizeTalentGateNotes(approvedDocumentEvidence).gates.find(g=>g.condition===gate.condition);
+    const approved=normalizeTalentGateNotes(approvedDocumentEvidence,requiredKeys).gates.find(g=>g.condition===gate.condition);
     assert.equal(canonicalJsonSha256(approved),canonicalJsonSha256(gate),'document gate differs from main acceptance');
     assert.ok(Buffer.isBuffer(documentBytes)&&Buffer.isBuffer(textBytes));
     assert.equal(hash(documentBytes),gate.fileSha256,'original PDF changed');
@@ -111,12 +111,14 @@ export function createTalentPushService(configFile){
     assert.ok(Date.parse(h.completedAt)>=Date.parse(c.enabledAt)||(c.bootstrapRecordIds??[]).includes(event.recordId),'historical bulk notifications are disabled');
     const recordFile=path.join(source.ledgerDir,uid+'.json'),record=readEvidence(recordFile),{score}=validateCandidateRecord(record);
     assert.equal(String(record.candidate.uid),uid);assert.equal(String(record.job.boss_job_id),String(c.jobId));assert.equal(record.state,'hr_review');assert.equal(record.job_fit.hard_condition_status,'pass');assert.equal(record.history.complete,true);
-    readEvidence(c.jobProfile);assert.equal(evidenceFiles[c.jobProfile],record.job.job_profile_sha256,'job profile changed');
+    const rawProfile=readEvidence(c.jobProfile),profile=rawProfile.job??rawProfile;assert.equal(evidenceFiles[c.jobProfile],record.job.job_profile_sha256,'job profile changed');
+    assert.equal(canonicalJsonSha256(profile.screening_policy??null),canonicalJsonSha256(record.screening_policy??null),'role policy changed');
+    const requiredKeys=record.screening_policy?.conditions.filter(c=>c.required).map(c=>c.key)??null;
     const acceptanceFile=contained(h.acceptance,c.evidenceRoots),accepted=readEvidence(acceptanceFile);assert.equal(accepted.recordId,event.recordId);assert.equal(String(accepted.uid),uid);assert.equal(accepted.name,record.candidate.name);assert.equal(accepted.HRReviewStatus,'待复核');assert.equal(accepted.independentMatches,1);assert.equal(canonicalJsonSha256(record),accepted.recordSha256,'formal record changed after accepted HR handoff');
-    const notesFile=path.join(path.dirname(acceptanceFile),'main-approved-notes.json'),notes=normalizeTalentGateNotes(readEvidence(notesFile)),screeningFile=path.join(path.dirname(acceptanceFile),'screening-fresh-snapshot.json'),snapshot=readEvidence(screeningFile);
+    const notesFile=path.join(path.dirname(acceptanceFile),'main-approved-notes.json'),notes=normalizeTalentGateNotes(readEvidence(notesFile),requiredKeys),screeningFile=path.join(path.dirname(acceptanceFile),'screening-fresh-snapshot.json'),snapshot=readEvidence(screeningFile);
     assert.equal(String(snapshot.candidate.uid),uid);assert.equal(snapshot.candidate.name,record.candidate.name);assert.equal(String(snapshot.candidate.jobId),String(c.jobId));assert.equal(snapshot.history.complete,true);
     const messages=snapshot.history.original_order_redacted;assert.ok(Array.isArray(messages));
-    assert.deepEqual(notes.gates.map(g=>g.condition).sort(),['arrival','duration','location','onsite_days','salary','school']);
+    assert.deepEqual(notes.gates.map(g=>g.condition).sort(),requiredKeys?[...requiredKeys].sort():['arrival','duration','location','onsite_days','salary','school']);
     const documentApproval=notes.gates.some(g=>g.sourceType==='document')?readEvidence(path.join(path.dirname(acceptanceFile),'main-draft-acceptance.json')):null;
     for(const gate of notes.gates){
       let documentBytes,textBytes;
@@ -125,7 +127,7 @@ export function createTalentPushService(configFile){
         documentBytes=fs.readFileSync(file);textBytes=fs.readFileSync(textFile);
         evidenceFiles[file]=hash(documentBytes);evidenceFiles[textFile]=hash(textBytes);
       }
-      assertTalentGateEvidence(gate,{messages,uid,jobId:c.jobId,ownBossUid:c.ownBossUid,approvedDocumentEvidence:documentApproval,documentBytes,textBytes});
+      assertTalentGateEvidence(gate,{messages,uid,jobId:c.jobId,ownBossUid:c.ownBossUid,approvedDocumentEvidence:documentApproval,documentBytes,textBytes,requiredKeys});
     }
     const q=messages.find(m=>String(m.mid)===String(notes.questionMid));assert.ok(q);assert.equal(String(q.from.uid),String(c.ownBossUid));for(const fragment of notes.requiredQuestionFragments)assert.ok(q.body.text.includes(fragment));
     const auth=await cli(c,folder,'identity',['auth','status','--json','--verify']);assert.equal(auth.appId,c.appId);assert.equal(auth.identities.bot.openId,c.botOpenId);assert.equal(auth.identities.bot.verified,true);
@@ -137,7 +139,8 @@ export function createTalentPushService(configFile){
     const values=Object.fromEntries(base.data.fields.map((name,i)=>[name,base.data.data[0][i]]));assert.equal(values['姓名'],record.candidate.name);assert.equal(values['岗位'],c.jobName);assert.equal(values['能力评分'],score.abilityBaseScore);assert.equal(values['岗位适应评分'],record.job_fit.score);
     const uidMatches=[...String(values['初筛依据']).matchAll(/BOSS[ _]UID=(\d+)/g)].map(m=>m[1]);assert.ok(uidMatches.length&&uidMatches.every(x=>x===uid));const jobMatches=[...String(values['初筛依据']).matchAll(/(?:BOSS_JOB_ID|岗位ID)=(\d+)/g)].map(m=>m[1]);assert.ok(jobMatches.length&&jobMatches.every(x=>x===String(c.jobId)));
     const input={candidate:{uid,name:record.candidate.name,jobId:c.jobId},screening:{state:record.state,abilityBaseScore:score.abilityBaseScore,evidenceCoveragePercent:score.evidenceCoveragePercent,finalSignalScore:score.finalSignalScore,conditionsConfirmed:notes.gates.length,aiCodingConfirmed:record.job_fit.hard_condition_status==='pass'},base:{recordId:event.recordId,uid,jobId:c.jobId,name:values['姓名'],jobName:values['岗位'],conclusion:scalar(values['AI初筛结论']),hrStatus:scalar(values['HR复核状态']),url:c.baseUrl,salary:values['薪资'],arrival:values['最快到岗时间'],school:values['院校']??'',technicalSummary:notes.technicalSummary},group:{chatId:c.chatId,name:group.data.name,external:group.data.external},expected:{jobId:c.jobId,chatId:c.chatId,groupName:c.groupName,baseUrl:c.baseUrl},paused:isPaused};
-    const plan=buildTalentPush(input);save(path.join(folder,'input.json'),input);save(path.join(folder,'plan.json'),plan);save(path.join(folder,'evidence.json'),{at:new Date().toISOString(),candidateUid:uid,recordCanonicalSha256:canonicalJsonSha256(record),files:evidenceFiles,baseFieldsRead:schema.data.fields.length,rawGatesVerified:6,botMembershipVerified:true});return plan;
+    if(requiredKeys){input.screening.policy=record.screening_policy;input.screening.confirmedConditionKeys=notes.gates.map(g=>g.condition);input.expected.policy=profile.screening_policy;}
+    const plan=buildTalentPush(input);save(path.join(folder,'input.json'),input);save(path.join(folder,'plan.json'),plan);save(path.join(folder,'evidence.json'),{at:new Date().toISOString(),candidateUid:uid,recordCanonicalSha256:canonicalJsonSha256(record),files:evidenceFiles,baseFieldsRead:schema.data.fields.length,rawGatesVerified:notes.gates.length,botMembershipVerified:true});return plan;
   }
   function command(c,plan){return ['im','+messages-send','--as','bot','--chat-id',c.chatId,'--msg-type','post','--content',JSON.stringify(plan.content),'--idempotency-key',plan.eventKey,'--format','json'];}
   async function verify(c,dir,plan,messageId,attemptAt,label){

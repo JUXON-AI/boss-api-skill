@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import fs from 'node:fs';
 import {buildTalentPush, talentPushEventKey} from './talent_push.mjs';
 
 function fixture() {
@@ -50,6 +51,26 @@ function fixture() {
 const clone = value => structuredClone(value);
 const sha256 = value => createHash('sha256').update(value, 'utf8').digest('hex');
 const allNodes = result => result.content.zh_cn.content.flat();
+
+test('HR role push uses configured keys and thresholds without AI coding or six internship conditions', () => {
+  const input = fixture();
+  const profile = JSON.parse(fs.readFileSync(new URL('../assets/job-profile.hr.example.json', import.meta.url), 'utf8'));
+  const policy = profile.screening_policy; policy.boss_job_id = input.candidate.jobId; policy.approved = true;
+  input.screening.policy = policy; input.expected.policy = structuredClone(policy);
+  input.screening.conditionsConfirmed = policy.conditions.length;
+  input.screening.confirmedConditionKeys = policy.conditions.map(c => c.key);
+  delete input.screening.aiCodingConfirmed;
+  input.base.jobName = '合成招聘专员'; input.base.technicalSummary = '本人负责招聘邀约、面试协调和流程跟进。';
+  const rendered = buildTalentPush(input);
+  assert.ok(rendered.eventKey);
+  assert.match(JSON.stringify(rendered.content), /能力自述/);
+  assert.doesNotMatch(JSON.stringify(rendered.content), /技术自述/);
+  input.screening.confirmedConditionKeys[1] = 'school';
+  assert.throws(() => buildTalentPush(input), /required role condition keys differ/);
+  input.screening.confirmedConditionKeys = policy.conditions.map(c => c.key);
+  input.expected.policy.department_key = 'other';
+  assert.throws(() => buildTalentPush(input), /role policy must match/);
+});
 
 function changed(mutator) {
   const input = fixture();

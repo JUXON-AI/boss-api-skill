@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "companies": [
+    {
+      "company_key": "example-company",
+      "name": "示例公司"
+    }
+  ],
+  "departments": [
+    {
+      "company_key": "example-company",
+      "department_key": "creative"
+    },
+    {
+      "company_key": "example-company",
+      "department_key": "people"
+    }
+  ],
+  "jobs": [
+    {
+      "company_key": "example-company",
+      "department_key": "creative",
+      "boss_job_id": "example-design",
+      "job_profile": "job-profile.design.example.json",
+      "scope": null,
+      "ledger": null,
+      "corpus_table": null,
+      "talent_table": null,
+      "push_group": null,
+      "authorized": {
+        "collect": false,
+        "contact": false,
+        "talent": false,
+        "push": false
+      }
+    },
+    {
+      "company_key": "example-company",
+      "department_key": "people",
+      "boss_job_id": "example-hr",
+      "job_profile": "job-profile.hr.example.json",
+      "scope": null,
+      "ledger": null,
+      "corpus_table": null,
+      "talent_table": null,
+      "push_group": null,
+      "authorized": {
+        "collect": false,
+        "contact": false,
+        "talent": false,
+        "push": false
+      }
+    }
+  ],
+  "facts": []
+}

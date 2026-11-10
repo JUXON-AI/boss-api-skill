@@ -1,0 +1,91 @@
+{
+  "employment_type": "full_time",
+  "job_name": "示例招聘专员",
+  "boss_job_id": "example-hr",
+  "company": "示例公司，非真实政策",
+  "company_key": "example-company",
+  "department_key": "people",
+  "location": "待HR确认",
+  "salary": "待HR确认",
+  "days_per_week": null,
+  "minimum_months": null,
+  "responsibilities": [
+    "按岗位需求开展招聘沟通和流程跟进",
+    "维护招聘记录并与用人部门协作"
+  ],
+  "hard_requirements": [
+    "待用户确认实际岗位要求，不可直接用于联系"
+  ],
+  "scoring_weights": {
+    "core_role_skills": 35,
+    "project_depth": 30,
+    "engineering_habits": 15,
+    "learning_and_collaboration": 20
+  },
+  "message_policy": {
+    "max_substantive_rounds": 2,
+    "require_human_approval_before_send": true,
+    "require_fresh_history_before_send": true,
+    "allowed_channels": [
+      "BOSS"
+    ],
+    "may_promise_email": false,
+    "may_make_final_decision": false
+  },
+  "screening_policy": {
+    "schema_version": 1,
+    "id": "example-hr",
+    "revision": "draft-1",
+    "company_key": "example-company",
+    "department_key": "people",
+    "boss_job_id": "example-hr",
+    "approved": false,
+    "max_substantive_rounds": 2,
+    "proof_bonus": "none",
+    "dimensions": {
+      "core_role_skills": {
+        "label": "招聘业务核心能力",
+        "weight": 35,
+        "rubric": "按本人岗位需求理解、招聘沟通与流程实践评价，不以年龄性别或院校档次筛选"
+      },
+      "project_depth": {
+        "label": "本人招聘实践与职责",
+        "weight": 30,
+        "rubric": "按本人实际负责的招聘环节、处理方法和结果来源评价，不把团队成果全部归为本人"
+      },
+      "engineering_habits": {
+        "label": "专业方法与工具习惯",
+        "weight": 15,
+        "rubric": "按本人招聘台账、流程跟进、工具与信息维护实践评价，不要求写代码"
+      },
+      "learning_and_collaboration": {
+        "label": "学习与跨部门协作",
+        "weight": 20,
+        "rubric": "仅有明确原话的沟通反馈、协调与学习实践计分"
+      }
+    },
+    "thresholds": {
+      "ability_base": 60,
+      "coverage": 70,
+      "signal": 65,
+      "job_fit": 60
+    },
+    "conditions": [
+      {
+        "key": "salary",
+        "label": "接受本岗位已确认的薪资范围",
+        "required": true
+      },
+      {
+        "key": "work_mode",
+        "label": "接受本岗位已确认的办公方式",
+        "required": true
+      },
+      {
+        "key": "arrival",
+        "label": "明确到岗计划",
+        "required": true
+      }
+    ]
+  }
+}

@@ -1,5 +1,7 @@
 # 部门知识记录
 
+通用岗位先按[公司/部门/岗位配置](../../boss-recruiting-followup/references/job-configuration.md)取真实身份。公司通用事实仅在同公司生效，部门和岗位事实进一步收窄；job_policy.mjs的resolveKnowledgeFacts可筛选已确认且允许对外的条目并返回冲突，不自动覆盖同主题冲突。以下department_knowledge_registry是旧工作区兼容布局，新布局仍须保留来源与范围，不据部门同名跨公司套用。
+
 招聘政策按部门归档，不把一个部门的待遇、工具支持或报销口径自动推广到其他部门。真实政策、来源和云端位置属于当前工作区私有配置，不写进通用skill仓库。
 
 工作区 `.codex/boss-recruiting.json` 可配置 `department_knowledge_registry`，路径相对该配置文件目录解析。注册表包含 `departments` 和 `jobDepartments`：先用当前实际岗位ID查部门键，再读取该部门 `localKnowledge` 指向的记录；该路径相对注册表目录解析。`remoteKnowledge` 保存已经核实的云端知识库位置，未知时为null。未配置或岗位未绑定时先核实，不猜部门，也不回退到其他部门。

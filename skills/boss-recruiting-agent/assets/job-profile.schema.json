@@ -3,6 +3,12 @@
   "title": "BOSS recruiting job profile",
   "type": "object",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {"required": ["screening_policy"]},
+      "then": {"required": ["company_key", "department_key"]}
+    }
+  ],
   "required": [
     "employment_type",
     "job_name",
@@ -23,7 +29,10 @@
         "internship",
         "full_time",
         "campus",
-        "general"
+        "general",
+        "part_time",
+        "contract",
+        "other"
       ]
     },
     "job_name": {
@@ -46,12 +55,18 @@
       "minLength": 1
     },
     "days_per_week": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 1,
       "maximum": 7
     },
     "minimum_months": {
-      "type": "number",
+      "type": [
+        "number",
+        "null"
+      ],
       "minimum": 0
     },
     "responsibilities": {
@@ -137,6 +152,17 @@
     },
     "post_description": {
       "type": "string"
+    },
+    "company_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "department_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "screening_policy": {
+      "$ref": "job-screening-policy.schema.json"
     }
   }
 }

@@ -64,7 +64,7 @@ node --test scripts/runtime.test.mjs
 
 Windows 使用 PowerShell 与本机 Node.js，无需 WSL、`ps` 或 Unix 信号。`BOSS_APP_MAIN` 可显式指定安装的 exe；通常直接使用 CIM 返回的唯一主进程路径。敏感输出在新建子目录中保存：Windows 使用仅当前用户与 SYSTEM 可访问的受保护 ACL，已有目录权限过宽则拒绝写入；macOS 保持 0600 文件模式。全部离线测试：`node --test scripts/*.test.mjs`。
 
-上述安装的是技术skill。招聘流程使用下面的模块化skills包；`skills/boss-recruiting-agent` 保留项目实现、契约、脚本和兼容入口。1.3.0同时支持Codex与DeepSeek Harness。
+上述安装的是技术skill。招聘流程使用下面的模块化skills包；`skills/boss-recruiting-agent` 保留项目实现、契约、脚本和兼容入口。1.4.0支持Codex与DeepSeek Harness，并按公司、部门、岗位与用工类型配置，不限后端实习。
 
 ### 安装招聘skills包
 
@@ -81,6 +81,7 @@ node scripts/recruiting-skills-install.mjs --host deepseek-harness --check
 | Skill | 职责 |
 | --- | --- |
 | [boss-recruiting-deepseek-harness](skills/boss-recruiting-deepseek-harness/SKILL.md) | Harness全程执行与宿主适配 |
+| [boss-recruiting-config](skills/boss-recruiting-config/SKILL.md) | 公司/部门/岗位配置、条件与评分边界 |
 | [boss-recruiting-followup](skills/boss-recruiting-followup/SKILL.md) | 持续跟进与按需路由 |
 | [boss-recruiting-collect](skills/boss-recruiting-collect/SKILL.md) | 新招呼、新回复、真正漏回的只读采集 |
 | [boss-recruiting-review](skills/boss-recruiting-review/SKILL.md) | 单人证据、评分及草稿复核 |
@@ -93,10 +94,12 @@ node scripts/recruiting-skills-install.mjs --host deepseek-harness --check
 
 使用示例：`请使用 $boss-recruiting-followup，按本项目私有任务入口继续已授权岗位。` 单项维护可直接调用对应模块。包内不含实际岗位配置、候选人资料、凭据或实时任务状态，也不会自动注册工具；实现依赖按 [工作区映射](skills/boss-recruiting-followup/references/implementation-map.md) 从本仓库和已部署CLI取得。
 
+新增部门或非技术岗位先使用boss-recruiting-config，参见[岗位配置](skills/boss-recruiting-followup/references/job-configuration.md)及设计、人事招聘两个未批准样例。岗位单独定义评价rubric、权重、门槛和必需条件，不默认追问Go、AI编程、学校手续或实习周期。公司通用知识只在已确认范围内继承，部门/岗位事实不自动外推。新岗位仍需明确授权、独立状态及已验收执行适配器；模板不是联系授权，历史候选分数和暂停不自动迁移。
+
 部署依赖按实际使用的模块准备：
 
 - 客户端读取和消息操作需要本仓库技术skill、Node.js及已经验证的本地BOSS客户端SDK/桥接；平台支持范围见本文的平台与验证章节，不能把Windows接续经验视为其他平台已验证。
-- 评分、账本、流水线和提案检查依赖本仓库 `scripts/` 与 `skills/boss-recruiting-agent/scripts/`，保留仓库布局。9个模块只携带操作规则，不独立实现这些接口。
+- 评分、账本、流水线和提案检查依赖本仓库 `scripts/` 与 `skills/boss-recruiting-agent/scripts/`，保留仓库布局。业务模块只携带操作规则，不独立实现这些接口。
 - 飞书入库、资料和附件维护另需当前用户已授权的lark-cli、对应lark skills、真实表结构及工作区配置；邮箱读取和机器人推送仅在用户启用对应模块后需要。
 - 持续轮询需要私有任务入口、当前授权与已验收的collector/runner；缺少实现或接口未验证时停在对应阶段，不能凭安装skills直接发送、建人才行或推群。
 
